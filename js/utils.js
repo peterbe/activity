@@ -8,11 +8,3 @@ function get_gravatar(email, size, secure) {
   else base = 'http://www.gravatar.com/';
   return base + 'avatar/' + MD5(email) + '.jpg?s=' + size;
 }
-
-
-function sanitizeHTML(string, white, black) {
-   if (!white) white="b|i|p|br";//allowed tags
-   if (!black) black="script|object|embed";//complete remove tags
-   e=new RegExp("(<("+black+")[^>]*>.*</\\2>|(?!<[/]?("+white+")(\\s[^<]*>|[/]>|>))<[^<>]*>|(?!<[^<>\\s]+)\\s[^</>]+(?=[/>]))", "gi");
-   return string.replace(e, "");
-}
