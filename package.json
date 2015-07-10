@@ -11,8 +11,13 @@
   "homepage": "https://github.com/peterbe/activity",
   "devDependencies": {
     "gulp": "^3.8.10",
+    "gulp-concat": "^2.6.0",
+    "gulp-concat-css": "^2.2.0",
+    "gulp-html-replace": "^1.5.1",
     "gulp-jsx": "^2.0.0",
+    "gulp-react": "^3.0.1",
     "gulp-serve": "^1.0.0",
+    "gulp-uglify": "^1.2.0",
     "jsx-transform": "^2.2.1"
   }
 }

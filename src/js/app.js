@@ -68,16 +68,19 @@ var FilteredList = React.createClass({
     this.setState({items: this.bucketThings(updatedList)});
   },
   getInitialState: function(){
-    var store = JSON.parse(
-      localStorage.getItem('activity') || '{"items": []}'
-    );
     return {
-      initialItems: store.items,
-      items: []
+      initialItems: [],  // all items
+      items: []  // the displayed items
     }
   },
   componentWillMount: function(){
-    this.setState({items: this.bucketThings(this.state.initialItems)})
+    var store = JSON.parse(
+      localStorage.getItem('activity') || '{"items": []}'
+    );
+    var items = this.bucketThings(this.state.initialItems);
+    this.setState({
+      initialItems: items
+      items: items});
   },
   render: function(){
     return (
