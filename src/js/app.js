@@ -1,4 +1,4 @@
-/** @jsx React.DOM */
+import React from 'react';
 
 var SAMPLE_ITEMS = [
   {
@@ -24,9 +24,43 @@ var SAMPLE_ITEMS = [
   }
 ];
 // localStorage.setItem('activity', JSON.stringify({items:SAMPLE_ITEMS}));
+// console.log(localStorage.getItem('activity'));
 
-var FilteredList = React.createClass({
-  bucketThings: function(items) {
+class FilteredList extends React.Component {
+  // constructor(props) {
+  //   super(props);
+  constructor() {
+    super();
+
+    var store = JSON.parse(
+      localStorage.getItem('activity') || '{"items": []}'
+    );
+
+    this.state = {
+      initialItems: store.items,
+      items: this.bucketThings(store.items),
+    }
+
+    // console.log('STORE', this.state.initialItems);
+    // var items = this.bucketThings(this.state.initialItems);
+    // this.setState({items: items});
+    // console.log('ITEMS', items);
+    // this.setState({
+    //   initialItems: items,
+    //   items: items
+    // });
+  }
+
+  // getInitialState() {
+  //   return {
+  //     initialItems: [],  // all items
+  //     items: []  // the displayed items
+  //   }
+  // }
+
+
+
+  bucketThings(items) {
     var newItems = [];
     var lastDate = null;
     var things = [];
@@ -46,8 +80,9 @@ var FilteredList = React.createClass({
     }
     // console.log('newItems', newItems);
     return newItems;
-  },
-  filterList: function(event){
+  }
+
+  filterList(event) {
     var updatedList = this.state.initialItems;
     var term = event.target.value.toLowerCase().trim();
     if (term) {
@@ -66,70 +101,58 @@ var FilteredList = React.createClass({
       });
     }
     this.setState({items: this.bucketThings(updatedList)});
-  },
-  getInitialState: function(){
-    return {
-      initialItems: [],  // all items
-      items: []  // the displayed items
-    }
-  },
-  componentWillMount: function(){
-    var store = JSON.parse(
-      localStorage.getItem('activity') || '{"items": []}'
-    );
-    var items = this.bucketThings(this.state.initialItems);
-    this.setState({
-      initialItems: items
-      items: items});
-  },
-  render: function(){
+  }
+
+  render() {
     return (
-        <div className="timeline">
-          <input type="search" placeholder="Search filter" onChange={this.filterList}/>
-          <List items={this.state.items}/>
-        </div>
+      <div className="timeline">
+        <input type="search" placeholder="Search filter"
+         onChange={this.filterList.bind(this)}/>
+        <List items={this.state.items}/>
+      </div>
     );
   }
-});
+};
 
 
-var List = React.createClass({
-  renderThing: function(thing) {
+class List extends React.Component {
+  renderThing(thing) {
     return [
-        <div className="pull-left">
-          <img className="events-object img-rounded" src={thing.img}/>
-        </div>,
-        <div className="events-body">
-          <h4 className="events-heading">{thing.heading}</h4>
-          <p>{thing.text}</p>
-        </div>
+      <div className="pull-left">
+        <img className="events-object img-rounded" src={thing.img}/>
+      </div>,
+      <div className="events-body">
+        <h4 className="events-heading">{thing.heading}</h4>
+        <p>{thing.text}</p>
+      </div>
     ]
-  },
-  render: function() {
+  }
+
+  render() {
     var left = true;
     return (
-          <dl>
-            {
-            this.props.items.map(function(item) {
-              left = !left;
-              var pos = left ? 'pos-left' : 'pos-right';
-              return [
-                  <dt>{item.date}</dt>,
-                  <dd className={pos +" clearfix"}>
-                    <div className="circ"></div>
-                    <div className="events">
-                    {
-                      item.things.map(this.renderThing)
-                    }
-                    </div>
-                  </dd>
-              ];
-            }.bind(this))
-          }
-          </dl>
+      <dl>
+        {
+        this.props.items.map(function(item) {
+          left = !left;
+          var pos = left ? 'pos-left' : 'pos-right';
+          return [
+              <dt>{item.date}</dt>,
+              <dd className={pos +" clearfix"}>
+                <div className="circ"></div>
+                <div className="events">
+                {
+                  item.things.map(this.renderThing)
+                }
+                </div>
+              </dd>
+          ];
+        }.bind(this))
+      }
+      </dl>
     )
   }
-});
+};
 
 
 // var ListThings = React.createClass({
