@@ -4,5 +4,5 @@ from . import views
 
 urlpatterns = patterns(
     '',
-    url('(?P<projects>[\w,]+)', views.events, name='events'),
+    url('(?P<projects>[\w,\s]+)', views.events, name='events'),
 )

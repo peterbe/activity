@@ -14,6 +14,15 @@ from django.conf import settings
 
 from activity.events.models import Project, Event, Person
 
+def add_cors_header(value):
+    def decorator(f):
+        def inner(*args, **kwargs):
+            response = f(*args, **kwargs)
+            response['Access-Control-Allow-Origin'] = value
+            return response
+        return inner
+    return decorator
+
 
 def fetch(url, params=None, expires=60 * 60):
     cache_key = hashlib.md5(url + str(params)).hexdigest()
@@ -27,15 +36,18 @@ def fetch(url, params=None, expires=60 * 60):
     return value
 
 
+@add_cors_header('*')
 def events(request, projects):
     # replace ALL of this one day with DRF
 
     project_names = projects.split(',')
+    print project_names
+    print [x.name for x in Project.objects.all()]
     projects = Project.objects.filter(name__in=project_names)
     if projects.count() != len(project_names):
         raise http.Http404('No known projects')
 
-    # populate_github_events(projects)  # should be triggered by a cron job
+    populate_github_events(projects)  # should be triggered by a cron job
     populate_bugzilla_events(projects)  # should be triggered by a cron job
 
     events = (
@@ -50,10 +62,11 @@ def events(request, projects):
     items = []
     persons = ()
     for event in events:
-        items.append({
+        item = {
             'guid': event.guid,
             'date': event.date.isoformat(),
             'type': event.type,
+            'url': event.url,
             'person': {
                 'name': event.person.name,
                 'github': event.person.github,
@@ -63,7 +76,16 @@ def events(request, projects):
                 'github_avatar_url': event.person.github_avatar_url,
             },
             'meta': event.meta or {},
-        })
+        }
+
+        if event.person.github_avatar_url:
+            item['img'] = event.person.github_avatar_url
+        elif event.person.email:
+            item['img'] = (
+                '//www.gravatar.com/avatar/' +
+                hashlib.md5(event.person.email.lower()).hexdigest() + '?'
+            )
+        items.append(item)
     return http.JsonResponse({
         'count': events.count(),
         'items': items,
@@ -99,7 +121,7 @@ def populate_bugzilla_events(projects):
         pprint(bugs[3])
         for bug in bugs:
             guid = 'bugzilla-bug-{}'.format(bug['id'])
-            populate_bugzilla_comments(project, bug['id'])
+            populate_bugzilla_comments(project, bug)
             if Event.objects.filter(project=project, guid=guid).exists():
                 continue
 
@@ -125,20 +147,21 @@ def populate_bugzilla_events(projects):
                     'id': bug['id'],
                     'status': bug['status'],
                     'resolution': bug['resolution'],
+                    'summary': bug['summary'],
                 }
             )
 
-def populate_bugzilla_comments(project, bug_id):
-    print "BUGID", bug_id
+def populate_bugzilla_comments(project, bug):
+    print "BUGID", bug['id']
     import random
-    if random.randint(1, 10)!=1:
+    if random.randint(1, 25)!=1:
         return
-    url = 'https://bugzilla.mozilla.org/rest/bug/{}/comment'.format(bug_id)
-    comments = fetch(url)['bugs'][str(bug_id)]['comments']
+    url = 'https://bugzilla.mozilla.org/rest/bug/{}/comment'.format(bug['id'])
+    comments = fetch(url)['bugs'][str(bug['id'])]['comments']
 
     for i, comment in enumerate(comments):
-        print "COMMENT"
-        pprint(comment)
+        # print "COMMENT"
+        # pprint(comment)
         guid = 'bugzilla-comment-{}'.format(comment['id'])
         if Event.objects.filter(project=project, guid=guid).exists():
             continue
@@ -159,13 +182,22 @@ def populate_bugzilla_comments(project, bug_id):
             url=url,
             type='bugzilla-comment',
             meta={
-                'text': comment['text']
+                'id': bug['id'],
+                'text': comment['text'],
+                'summary': bug['summary'],
             }
         )
 
 
 @transaction.atomic
 def populate_github_events(projects):
+
+    def fetch_github_name(username):
+        user_info = fetch(
+            'https://api.github.com/users/{}'.format(username)
+        )
+        return user_info.get('name')
+
     # items = []
     for project in projects:
         if not project.github_path:
@@ -190,6 +222,15 @@ def populate_github_events(projects):
             if not person.github_avatar_url:
                 person.github_avatar_url = event['actor']['avatar_url']
                 person.save()
+            if not person.name:
+                name = fetch_github_name(event['actor']['login'])
+                if name:
+                    person.name = name
+                    person.save()
+
+            meta = {
+                'type': event['type'],
+            }
 
             if event['type'] == 'PushEvent':
                 sha = event['payload']['commits'][0]['sha']
@@ -199,16 +240,33 @@ def populate_github_events(projects):
                     repo=event['repo']['name'],
                     sha=sha
                 )
+                meta['commits'] = event['payload']['commits']
             elif event['type'] == 'ReleaseEvent':
                 url = event['payload']['release']['html_url']
             elif event['type'] == 'PullRequestEvent':
                 url = event['payload']['pull_request']['html_url']
+                meta['action']= event['payload']['action']
+                if 'title' in event['payload']['pull_request']:
+                    meta['title'] = event['payload']['pull_request']['title']
+                if 'merge_commit_sha' in event['payload']:
+                    meta['merge_commit_sha'] = (
+                        event['payload']['merge_commit_sha']
+                    )
             elif event['type'] == 'IssueCommentEvent':
                 url = event['payload']['comment']['html_url']
+                meta['issue'] = {
+                    'title': event['payload']['issue']['title'],
+                }
             elif event['type'] == 'PullRequestReviewCommentEvent':
                 url = event['payload']['comment']['html_url']
+                meta['pull_request'] = {
+                    'title': event['payload']['pull_request']['title']
+                }
             elif event['type'] == 'WatchEvent':
                 # someone else started watching this repo
+                continue
+            elif event['type'] == 'ForkEvent':
+                # just forking a repo isn't any real contribution
                 continue
             elif (
                 event['type'] == 'CreateEvent' and
@@ -218,6 +276,7 @@ def populate_github_events(projects):
                     repo=event['repo']['name'],
                     tag=event['payload']['ref'],
                 )
+                meta['tag'] = event['payload']['ref']
             elif (
                 event['type'] == 'CreateEvent' and
                 event['payload'].get('ref_type') == 'branch'
@@ -237,7 +296,5 @@ def populate_github_events(projects):
                 date=date,
                 type='github',
                 url=url,
-                meta={
-                    'type': event['type'],
-                }
+                meta=meta
             )
