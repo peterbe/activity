@@ -1,29 +1,6 @@
 import React from 'react';
 
-// var SAMPLE_ITEMS = [
-//   {
-//     key: '2015-01-14-1',
-//     date: 'Apr 14',
-//     img: "http://www.gravatar.com/avatar/0c404ed91de8fafd91cf4b0ab4556a67.jpg?s=32",
-//     heading: "Richard Milewski",
-//     text: "Some text here"
-//   },
-//   {
-//     key: '2015-01-14-2',
-//     date: 'Apr 14',
-//     img: "http://www.gravatar.com/avatar/37d081c393f95a14e2704af38ecc4c8d.jpg?s=32",
-//     heading: "Peter Bengtsson",
-//     text: "Updated a <a href=\"https://bugzilla.mozilla.org/show_bug.cgi?id=1177635\">1177635</a>"
-//   },
-//   {
-//     key: '2015-01-11-1',
-//     date: 'Apr 11',
-//     img: "http://www.gravatar.com/avatar/0c404ed91de8fafd91cf4b0ab4556a67.jpg?s=32",
-//     heading: "Richard Milewski",
-//     text: "Other text now"
-//   }
-// ];
-// localStorage.setItem('activity', JSON.stringify({items:SAMPLE_ITEMS}));
+const months = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
 
 class FilteredList extends React.Component {
   // constructor(props) {
@@ -44,7 +21,8 @@ class FilteredList extends React.Component {
   }
 
   componentDidMount() {
-    fetch('http://localhost:8000/events/airmozilla,socorro,kitsune,dxr')
+    // return;
+    fetch('http://localhost:8000/events/airmozilla,socorro')
       .then((response) => {
         return response.json()
       })
@@ -57,7 +35,7 @@ class FilteredList extends React.Component {
       })
       .catch((ex) => {
         alert(ex);
-        console.log('parsing failed', ex)
+        console.log('parsing failed', ex);
       });
   }
 
@@ -66,32 +44,33 @@ class FilteredList extends React.Component {
     var lastDate = null;
     var lastDay;
     var things = [];
-    console.log('currentDate:', currentDate);
-    var months = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
+    // console.log('currentDate:', currentDate);
+
     items.forEach((item) => {
-      // We could parse the date and format it as "Apr 12" or something
-      // console.log(new XDate(item.date));
-      // console.log(new Date(item.date).getTime());
       var d = new Date(item.date);
-      // day = ;
-      // console.log(months[d.getMonth()]);
-      // var date = item.date.split('T')[0];
-      // console.log('DATE:',currentDate);
-      var date = months[d.getMonth()] + ' ' + d.getDate();
+      var date;
+      if (currentDate === null) {
+        date = months[d.getMonth()] + ' ' + d.getDate();
+      } else {
+        console.log('HOUR?', d.getHours());
+        if (d.getHours() > 12) {
+          date = (d.getHours() - 12) + 'pm';
+        } else {
+          date = d.getHours() + 'am';
+        }
+        console.log(date);
+        // date = '' + d.getHours();
+      }
       // var d = new Date(y,m,d);
       if (date !== lastDate && lastDate !== null) {
         newItems.push({date: lastDate, things: things, day: lastDay});
         things = [];
-        // day = item.date.split('T')[0];
       }
       things.push(item);
       lastDate = date;
-      lastDay = item.date.split('T')[0];
-      // console.log(item.date, lastDay);
-
+      lastDay = [d.getFullYear(), d.getMonth(), d.getDate()];
     });
     if (things.length) {
-      // console.log('Lastly', lastDay);
       newItems.push({date: lastDate, things: things, day: lastDay});
     }
     // console.log('newItems', newItems);
@@ -121,35 +100,55 @@ class FilteredList extends React.Component {
   }
 
   handleClickDate(e) {
-    // console.log('E', e.target.dataset.day);
-    var day = e.target.dataset.day;
+    // console.log('E', e.target.dataset);
+    var day = [
+      parseInt(e.target.dataset.dayYear, 10),
+      parseInt(e.target.dataset.dayMonth, 10),
+      parseInt(e.target.dataset.dayDate, 10)
+    ];
+    // console.log('DAY', day);
     // console.log(this.state);
     var updatedList = this.state.initialItems;
     updatedList = updatedList.filter((item) => {
-      console.log('Filter', item.date, day, item.date.substring(0, day.length) === day);
-      // return true;
-      return item.date.substring(0, day.length) === day;
-      // return group.day === day;
-      // if (item.date.substring(0, ))
-      // return false;
+      var d = new Date(item.date);
+      return d.getFullYear() == day[0] && d.getMonth() == day[1] && d.getDate() == day[2];
     })
-    console.log('updatedList', updatedList);
-
     this.setState({items: this.bucketThings(updatedList, day), day: day});
+  }
+
+  handleDayButtonClick(e) {
+    e.preventDefault();
+    this.setState({items: this.bucketThings(this.state.initialItems, null), day: null});
   }
 
   render() {
     return (
       <div className="timeline">
         <input type="search" placeholder="Search filter"
+         className={this.state.day ? 'with-day-button' : ''}
          onChange={this.filterList.bind(this)}/>
-        <div>Date: {this.state.day}</div>
+         <Day day={this.state.day} onclick={this.handleDayButtonClick.bind(this)}/>
         <List onclick={this.handleClickDate.bind(this)} items={this.state.items}/>
       </div>
     );
   }
 };
 
+
+class Day extends React.Component {
+  render() {
+    console.log(this.props);
+    if (this.props.day) {
+      let month = months[this.props.day[1]];
+      let text = this.props.day[2] + ' ' + month + ' ' + this.props.day[0];
+      return <button type="button" className="btn btn-primary"
+        onClick={this.props.onclick}>{text}</button>
+    } else {
+      return <div></div>
+    }
+
+  }
+}
 
 class List extends React.Component {
 
@@ -160,47 +159,52 @@ class List extends React.Component {
                     thing.person.bugzilla ||
                     thing.person.irc ||
                     thing.person.email;
+
+    thing.text = '';
     switch (thing.type) {
       case 'bugzilla-comment':
-        thing.text = 'Bugzilla Comment<br>';
+        thing.text += 'Bugzilla Comment<br>';
         thing.text += `<a href="${thing.url}"
           title="${thing.meta.text}"><b>${thing.meta.id}</b> ${thing.meta.summary}</a>`;
         // console.log(thing);
         break;
       case 'bugzilla-bug':
-        thing.text = 'Bugzilla Bug<br>';
+        thing.text += 'Bugzilla Bug<br>';
         thing.text += `<a href="${thing.url}"><b>${thing.meta.id}</b> ${thing.meta.summary}</a>`;
         break;
       case 'github':
-        thing.text = 'GitHub ' + thing.meta.type;
+
         switch (thing.meta.type) {
           case 'PushEvent':
-            thing.text = 'GitHub Push<br>'
+            thing.text += 'GitHub Push<br>'
             if (thing.meta.commits) {
               thing.meta.commits.forEach((commit) => {
-                thing.text += `<a href="${commit.url}">${commit.message}</a><br>`;
+                thing.text += `<a href="${commit.url}"
+                  title="${commit.message}">${commit.message}</a><br>`;
               });
             }
             break;
           case 'PullRequestEvent':
-            thing.text = 'GitHub Pull Request<br>'
+            thing.text += 'GitHub Pull Request<br>'
             if (thing.meta.title) {
-              thing.text += `<a href="${thing.url}">${thing.meta.title}</a>`;
+              thing.text += `<a href="${thing.url}"
+                title="${thing.meta.title}">${thing.meta.title}</a>`;
             } else {
               thing.text += `<a href="${thing.url}">URL</a>`;
             }
             break;
           case 'IssueCommentEvent':
-            thing.text = 'GitHub Issue Comment<br>'
+            thing.text += 'GitHub Issue Comment<br>'
             if (thing.meta.issue && thing.meta.issue.title) {
-              thing.text += `<a href="${thing.url}">${thing.meta.issue.title}</a>`;
+              thing.text += `<a href="${thing.url}"
+                title="${thing.meta.issue.title}">${thing.meta.issue.title}</a>`;
             } else {
               thing.text += `<a href="${thing.url}"><i>No title</i></a>`;
             }
 
             break;
           case 'PullRequestReviewCommentEvent':
-            thing.text = 'GitHub Pull Request Comment<br>';
+            thing.text += 'GitHub Pull Request Comment<br>';
             if (thing.meta.pull_request && thing.meta.pull_request.title) {
               thing.text += `<a href="${thing.url}">${thing.meta.pull_request.title}</a>`;
             } else {
@@ -208,7 +212,7 @@ class List extends React.Component {
             }
             break;
           case 'CreateEvent':
-            thing.text = 'GitHub<br>';
+            thing.text += 'GitHub<br>';
             if (thing.meta.tag) {
               thing.text += `<a href="${thing.url}">Create tag ${thing.meta.tag}</a>`;
             } else {
@@ -218,7 +222,8 @@ class List extends React.Component {
           default:
             console.log('What about', thing.meta.type, thing.url);
             console.log(thing.meta)
-            thing.text = 'GitHub';
+            thing.text += 'GitHub';
+
         }
       break;
 
@@ -243,6 +248,7 @@ class List extends React.Component {
       <div className="events-body">
         <h4 className="events-heading">
           {thing.heading}
+          <a className="project" href={thing.project.url}>{thing.project.name}</a>
         </h4>
         <p dangerouslySetInnerHTML={{__html: thing.text}}>
         </p>
@@ -250,17 +256,8 @@ class List extends React.Component {
     ]
   }
 
-  // handleClickDate(e) {
-  //   console.log('clicked date', e.target.dataset.day, this);
-  //   // this.setState({day: e.target.dataset.day});
-  //
-  // }
-
   render() {
     var left = true;
-    // var thisDate = this.state.date;
-    // console.log('Render', this.props);
-    // this.props.onclick('Foo');
     return (
       <dl>
         {
@@ -269,7 +266,10 @@ class List extends React.Component {
           var pos = left ? 'pos-left' : 'pos-right';
           // var dateHeader = <dt title="123 days ago" data-day={item.day}
           // >{item.date}</dt>
-          var dateHeader = <dt title="123 days ago" data-day={item.day}
+          var dateHeader = <dt title="123 days ago"
+            data-day-year={item.day[0]}
+            data-day-month={item.day[1]}
+            data-day-date={item.day[2]}
             onClick={this.props.onclick}>{item.date}</dt>
           return [
               dateHeader,

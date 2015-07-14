@@ -6,3 +6,18 @@
 input[type="search"] {
     width: 100%;
 }
+input[type="search"].with-day-button {
+    width: 89%;
+    margin-right: 10px;
+}
+
+h4.events-heading a.project {
+    margin-left: 10px;
+    color: #999;
+    font-weight: bold;
+}
+.events-body p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

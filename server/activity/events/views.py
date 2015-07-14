@@ -41,8 +41,6 @@ def events(request, projects):
     # replace ALL of this one day with DRF
 
     project_names = projects.split(',')
-    print project_names
-    print [x.name for x in Project.objects.all()]
     projects = Project.objects.filter(name__in=project_names)
     if projects.count() != len(project_names):
         raise http.Http404('No known projects')
@@ -53,6 +51,7 @@ def events(request, projects):
     events = (
         Event.objects.filter(project__in=projects)
         .select_related('person')
+        .select_related('project')
         .order_by('-date')
     )
     page = int(request.GET.get('page', 1))
@@ -61,6 +60,7 @@ def events(request, projects):
 
     items = []
     persons = ()
+
     for event in events:
         item = {
             'guid': event.guid,
@@ -76,8 +76,11 @@ def events(request, projects):
                 'github_avatar_url': event.person.github_avatar_url,
             },
             'meta': event.meta or {},
+            'project': {
+                'name': event.project.name,
+                'url': event.project.url,
+            }
         }
-
         if event.person.github_avatar_url:
             item['img'] = event.person.github_avatar_url
         elif event.person.email:
