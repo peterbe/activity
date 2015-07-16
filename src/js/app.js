@@ -21,7 +21,7 @@ class FilteredList extends React.Component {
   }
 
   componentDidMount() {
-    // return;
+    return;
     fetch('http://localhost:8000/events/airmozilla,socorro')
       .then((response) => {
         return response.json()
@@ -52,16 +52,12 @@ class FilteredList extends React.Component {
       if (currentDate === null) {
         date = months[d.getMonth()] + ' ' + d.getDate();
       } else {
-        console.log('HOUR?', d.getHours());
-        if (d.getHours() > 12) {
-          date = (d.getHours() - 12) + 'pm';
-        } else {
-          date = d.getHours() + 'am';
-        }
-        console.log(date);
-        // date = '' + d.getHours();
+        let hours = d.getHours();
+        let ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        date = hours + ampm;
       }
-      // var d = new Date(y,m,d);
       if (date !== lastDate && lastDate !== null) {
         newItems.push({date: lastDate, things: things, day: lastDay});
         things = [];
