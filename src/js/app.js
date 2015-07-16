@@ -4,7 +4,6 @@ import 'sugar-date';
 
 const months = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
 
-console.log('YES?',Date.create('tomorrow'));
 class FilteredList extends React.Component {
   // constructor(props) {
   //   super(props);
@@ -21,7 +20,7 @@ class FilteredList extends React.Component {
       search: null,
       initialItems: store.items,
       items: [],
-      // items: this.bucketThings(store.items, null),
+      lumpNames: true,
     }
   }
 
@@ -162,7 +161,10 @@ class FilteredList extends React.Component {
                 onclick={this.handleDayButtonClick.bind(this)}/>
         </div>
 
-        <List onclick={this.handleClickDate.bind(this)} items={items}/>
+        <List
+          onclick={this.handleClickDate.bind(this)}
+          items={items}
+          lumpNames={this.state.lumpNames}/>
       </div>
     );
   }
@@ -275,7 +277,6 @@ class List extends React.Component {
   }
 
   renderThing(thing) {
-    this.simplifyThing(thing);
 
     return [
       <div className="pull-left">
@@ -286,34 +287,67 @@ class List extends React.Component {
           {thing.heading}
           <a className="project" href={thing.project.url}>{thing.project.name}</a>
         </h4>
-        <p dangerouslySetInnerHTML={{__html: thing.text}}>
-        </p>
+        {
+          thing.texts.map((text) => {
+            return <p dangerouslySetInnerHTML={{__html: text}}></p>
+          })
+        }
       </div>
     ]
   }
 
   render() {
     var left = true;
+    let lumpNames = this.props.lumpNames;
     return (
       <dl>
         {
         this.props.items.map((item) => {
           left = !left;
           var pos = left ? 'pos-left' : 'pos-right';
-          // var dateHeader = <dt title="123 days ago" data-day={item.day}
-          // >{item.date}</dt>
           var dateHeader = <dt title="123 days ago"
             data-day-year={item.day[0]}
             data-day-month={item.day[1]}
             data-day-date={item.day[2]}
             onClick={this.props.onclick}>{item.date}</dt>
+
+          let lumped = [];
+          if (lumpNames) {
+            var lastKey = null;
+            var key;
+            var texts = [];
+            var lastThing;
+            item.things.forEach((thing) => {
+              this.simplifyThing(thing);
+              key = thing.heading + thing.project.name;
+              if (key !== lastKey && lastKey !== null) {
+                lastThing.texts = texts;
+                lumped.push(lastThing)
+                texts = [];
+              }
+              texts.push(thing.text);
+              lastKey = key;
+              lastThing = thing;
+            });
+            if (texts.length) {
+              lastThing.texts = texts;
+              lumped.push(lastThing);
+            }
+          } else {
+            item.things.forEach((thing) => {
+              this.simplifyThing(thing);
+              thing.texts = [thing.text];
+              lumped.push(thing);
+            });
+          }
+
           return [
               dateHeader,
               <dd className={pos +" clearfix"}>
                 <div className="circ"></div>
                 <div className="events">
                 {
-                  item.things.map(this.renderThing.bind(this))
+                  lumped.map(this.renderThing.bind(this))
                 }
                 </div>
               </dd>
