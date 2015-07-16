@@ -21,3 +21,9 @@ h4.events-heading a.project {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+div.input-group-addon.clear-search {
+    cursor: pointer;
+}
+dt {
+    cursor: pointer;
+}

@@ -89,7 +89,13 @@ class FilteredList extends React.Component {
 
   handleDayButtonClick(e) {
     e.preventDefault();
-    this.setState({items: this.bucketThings(this.state.initialItems, null), day: null});
+    this.setState({day: null});
+  }
+
+  handleResetSearch(e) {
+    e.preventDefault();
+    React.findDOMNode(this.refs.search).value = '';
+    this.setState({search: null});
   }
 
   render() {
@@ -124,10 +130,18 @@ class FilteredList extends React.Component {
 
     return (
       <div className="timeline">
-        <input type="search" placeholder="Search filter"
-         className={this.state.day ? 'with-day-button' : ''}
-         onChange={this.filterList.bind(this)}/>
-         <Day day={this.state.day} onclick={this.handleDayButtonClick.bind(this)}/>
+        <div className="input-group form-search">
+          <div className="input-group-addon clear-search"
+               title="Clear search"
+             onClick={this.handleResetSearch.bind(this)}>
+            <span className="glyphicon glyphicon-remove"></span>
+          </div>
+          <input type="search" placeholder="Search filter" ref="search"
+           className={'form-control search-query ' + (this.state.day ? 'with-day-button' : '')}
+           onChange={this.filterList.bind(this)}/>
+           <Day day={this.state.day} onclick={this.handleDayButtonClick.bind(this)}/>
+        </div>
+
         <List onclick={this.handleClickDate.bind(this)} items={items}/>
       </div>
     );
