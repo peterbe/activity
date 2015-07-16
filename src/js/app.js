@@ -84,12 +84,7 @@ class FilteredList extends React.Component {
       parseInt(e.target.dataset.dayMonth, 10),
       parseInt(e.target.dataset.dayDate, 10)
     ];
-    var updatedList = this.state.initialItems;
-    updatedList = updatedList.filter((item) => {
-      var d = new Date(item.date);
-      return d.getFullYear() == day[0] && d.getMonth() == day[1] && d.getDate() == day[2];
-    })
-    this.setState({items: this.bucketThings(updatedList, day), day: day});
+    this.setState({day: day});
   }
 
   handleDayButtonClick(e) {
@@ -97,12 +92,21 @@ class FilteredList extends React.Component {
     this.setState({items: this.bucketThings(this.state.initialItems, null), day: null});
   }
 
-
   render() {
     let items = this.state.initialItems;
+    if (this.state.day) {
+      var d;
+      var day = this.state.day;
+      items = items.filter((item) => {
+        d = new Date(item.date);
+        return d.getFullYear() == day[0] &&
+               d.getMonth() == day[1] &&
+               d.getDate() == day[2];
+      });
+    }
     if (this.state.search) {
       let term = this.state.search;
-      items = items.filter(function(item){
+      items = items.filter((item) => {
         // OR statements much?!
         if (item.date.toLowerCase().search(term) > -1) {
           return true;
