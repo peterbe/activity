@@ -15,8 +15,10 @@ class FilteredList extends React.Component {
 
     this.state = {
       day: null,
+      search: null,
       initialItems: store.items,
-      items: this.bucketThings(store.items, null),
+      items: [],
+      // items: this.bucketThings(store.items, null),
     }
   }
 
@@ -44,7 +46,6 @@ class FilteredList extends React.Component {
     var lastDate = null;
     var lastDay;
     var things = [];
-    // console.log('currentDate:', currentDate);
 
     items.forEach((item) => {
       var d = new Date(item.date);
@@ -69,41 +70,20 @@ class FilteredList extends React.Component {
     if (things.length) {
       newItems.push({date: lastDate, things: things, day: lastDay});
     }
-    // console.log('newItems', newItems);
     return newItems;
   }
 
   filterList(event) {
-    var updatedList = this.state.initialItems;
-
     var term = event.target.value.toLowerCase().trim();
-    if (term) {
-      updatedList = updatedList.filter(function(item){
-        // OR statements much?!
-        if (item.date.toLowerCase().search(term) > -1) {
-          return true;
-        }
-        if (item.heading.toLowerCase().search(term) > -1) {
-          return true;
-        }
-        if (item.text.toLowerCase().search(term) > -1) {
-          return true;
-        }
-        return false;
-      });
-    }
-    this.setState({items: this.bucketThings(updatedList, this.day)});
+    this.setState({search: term});
   }
 
   handleClickDate(e) {
-    // console.log('E', e.target.dataset);
     var day = [
       parseInt(e.target.dataset.dayYear, 10),
       parseInt(e.target.dataset.dayMonth, 10),
       parseInt(e.target.dataset.dayDate, 10)
     ];
-    // console.log('DAY', day);
-    // console.log(this.state);
     var updatedList = this.state.initialItems;
     updatedList = updatedList.filter((item) => {
       var d = new Date(item.date);
@@ -117,14 +97,34 @@ class FilteredList extends React.Component {
     this.setState({items: this.bucketThings(this.state.initialItems, null), day: null});
   }
 
+
   render() {
+    let items = this.state.initialItems;
+    if (this.state.search) {
+      let term = this.state.search;
+      items = items.filter(function(item){
+        // OR statements much?!
+        if (item.date.toLowerCase().search(term) > -1) {
+          return true;
+        }
+        if (item.heading.toLowerCase().search(term) > -1) {
+          return true;
+        }
+        if (item.text.toLowerCase().search(term) > -1) {
+          return true;
+        }
+        return false;
+      });
+    }
+    items = this.bucketThings(items, this.state.day);
+
     return (
       <div className="timeline">
         <input type="search" placeholder="Search filter"
          className={this.state.day ? 'with-day-button' : ''}
          onChange={this.filterList.bind(this)}/>
          <Day day={this.state.day} onclick={this.handleDayButtonClick.bind(this)}/>
-        <List onclick={this.handleClickDate.bind(this)} items={this.state.items}/>
+        <List onclick={this.handleClickDate.bind(this)} items={items}/>
       </div>
     );
   }
@@ -133,7 +133,6 @@ class FilteredList extends React.Component {
 
 class Day extends React.Component {
   render() {
-    console.log(this.props);
     if (this.props.day) {
       let month = months[this.props.day[1]];
       let text = this.props.day[2] + ' ' + month + ' ' + this.props.day[0];
@@ -149,7 +148,6 @@ class Day extends React.Component {
 class List extends React.Component {
 
   simplifyThing(thing) {
-    // console.log("THING", thing);
     thing.heading = thing.person.name ||
                     thing.person.github ||
                     thing.person.bugzilla ||
@@ -162,7 +160,6 @@ class List extends React.Component {
         thing.text += 'Bugzilla Comment<br>';
         thing.text += `<a href="${thing.url}"
           title="${thing.meta.text}"><b>${thing.meta.id}</b> ${thing.meta.summary}</a>`;
-        // console.log(thing);
         break;
       case 'bugzilla-bug':
         thing.text += 'Bugzilla Bug<br>';
