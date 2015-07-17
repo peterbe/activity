@@ -31,5 +31,8 @@
     "react-router": "^0.13.3",
     "webpack": "^1.10.1",
     "webpack-dev-server": "^1.10.1"
+  },
+  "dependencies": {
+    "sugar-date": "^1.5.1"
   }
 }

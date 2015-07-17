@@ -1,7 +1,10 @@
 import React from 'react';
+// import Sugar from 'sugar-date';
+import 'sugar-date';
 
 const months = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
 
+console.log('YES?',Date.create('tomorrow'));
 class FilteredList extends React.Component {
   // constructor(props) {
   //   super(props);
@@ -24,7 +27,7 @@ class FilteredList extends React.Component {
 
   componentDidMount() {
     return;
-    fetch('http://localhost:8000/events/airmozilla,socorro')
+    fetch('http://localhost:8000/events/socorro,dxr,airmozilla,kitsune')
       .then((response) => {
         return response.json()
       })
@@ -74,8 +77,15 @@ class FilteredList extends React.Component {
   }
 
   filterList(event) {
-    var term = event.target.value.toLowerCase().trim();
-    this.setState({search: term});
+    let term = event.target.value.toLowerCase().trim();
+    let date = Date.create(term);
+    let state = {search: term};
+    if (date.toString() !== 'Invalid Date') {
+      state.suggestday = date;
+    } else if (this.state.suggestday) {
+      state.suggestday = null;
+    }
+    this.setState(state);
   }
 
   handleClickDate(e) {
@@ -89,7 +99,17 @@ class FilteredList extends React.Component {
 
   handleDayButtonClick(e) {
     e.preventDefault();
-    this.setState({day: null});
+    if (this.state.suggestday) {
+      let day = [
+        this.state.suggestday.getFullYear(),
+        this.state.suggestday.getMonth(),
+        this.state.suggestday.getDate()
+      ];
+      React.findDOMNode(this.refs.search).value = '';
+      this.setState({day: day, search: null, suggestday: null});
+    } else if (this.state.day) {
+      this.setState({day: null});
+    }
   }
 
   handleResetSearch(e) {
@@ -114,9 +134,6 @@ class FilteredList extends React.Component {
       let term = this.state.search;
       items = items.filter((item) => {
         // OR statements much?!
-        if (item.date.toLowerCase().search(term) > -1) {
-          return true;
-        }
         if (item.heading.toLowerCase().search(term) > -1) {
           return true;
         }
@@ -137,9 +154,12 @@ class FilteredList extends React.Component {
             <span className="glyphicon glyphicon-remove"></span>
           </div>
           <input type="search" placeholder="Search filter" ref="search"
-           className={'form-control search-query ' + (this.state.day ? 'with-day-button' : '')}
+           className={'form-control search-query ' + (
+             this.state.day || this.state.suggestday ? 'with-day-button' : '')}
            onChange={this.filterList.bind(this)}/>
-           <Day day={this.state.day} onclick={this.handleDayButtonClick.bind(this)}/>
+           <Day suggestday={this.state.suggestday}
+                day={this.state.day}
+                onclick={this.handleDayButtonClick.bind(this)}/>
         </div>
 
         <List onclick={this.handleClickDate.bind(this)} items={items}/>
@@ -148,16 +168,21 @@ class FilteredList extends React.Component {
   }
 };
 
-
 class Day extends React.Component {
   render() {
-    if (this.props.day) {
+    if (this.props.suggestday) {
+      let month = months[this.props.suggestday.getMonth()];
+      let text = this.props.suggestday.getFullYear() + ' ' +
+        month + ' ' + this.props.suggestday.getDate() + '?';
+      return <button type="button" className="btn btn-default"
+        onClick={this.props.onclick}>{text}</button>
+    } else if (this.props.day) {
       let month = months[this.props.day[1]];
       let text = this.props.day[2] + ' ' + month + ' ' + this.props.day[0];
       return <button type="button" className="btn btn-primary"
         onClick={this.props.onclick}>{text}</button>
     } else {
-      return <div></div>
+      return <span></span>
     }
 
   }
