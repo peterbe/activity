@@ -297,7 +297,7 @@ class List extends React.Component {
   }
 
   render() {
-    var left = true;
+    var left = false;
     let lumpNames = this.props.lumpNames;
     return (
       <dl>
