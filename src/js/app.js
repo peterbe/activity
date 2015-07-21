@@ -1,6 +1,7 @@
 import React from 'react';
 import 'sugar-date';
 import 'whatwg-fetch';
+import horsey from 'horsey';
 
 const months = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
 
@@ -24,7 +25,34 @@ class FilteredList extends React.Component {
     }
   }
 
+  setUpHorsey() {
+    let suggestions = this.getItemWordsTokenized();
+    let el = document.querySelector('input[type="search"]');
+    horsey(el, {
+      suggestions: suggestions,
+      limit: 10
+    });
+    el.addEventListener('horsey-selected', function(){
+      this.handleTermChange(el.value.toLowerCase());
+    }.bind(this), false);
+  }
+
+  getItemWordsTokenized() {
+    let words = new Set();
+    this.state.initialItems.forEach(function(item) {
+      let combined = item.heading + ' ' + item.text;
+      combined = combined.replace(/(<([^>]+)>)/g, ' ');
+      combined.match(/\S+/g).forEach(function(word) {
+        if (word.length > 1) {
+          words.add(word);
+        }
+      })
+    });
+    return Array.from(words);
+  }
+
   componentDidMount() {
+    this.setUpHorsey();
     // return;
     fetch('http://localhost:8000/events/socorro,dxr,airmozilla,kitsune')
       .then((response) => {
@@ -36,6 +64,7 @@ class FilteredList extends React.Component {
           initialItems: stuff.items,
           items: this.bucketThings(stuff.items, this.state.day)
         });
+        this.setUpHorsey();
       })
       .catch((ex) => {
         alert(ex);
@@ -75,8 +104,13 @@ class FilteredList extends React.Component {
     return newItems;
   }
 
-  filterList(event) {
+  handleSearchChange(event) {
     let term = event.target.value.toLowerCase().trim();
+    // console.log('handleSearchChange', event, term);
+    this.handleTermChange(term);
+  }
+
+  handleTermChange(term) {
     let date = Date.create(term);
     let state = {search: term};
     if (date.toString() !== 'Invalid Date') {
@@ -133,10 +167,12 @@ class FilteredList extends React.Component {
       let term = this.state.search;
       items = items.filter((item) => {
         // OR statements much?!
-        if (item.heading.toLowerCase().search(term) > -1) {
+        // Use onestring.indexOf(otherstring) because it doesn't
+        // interpret it as a regular expression.
+        if (item.heading.toLowerCase().indexOf(term) > -1) {
           return true;
         }
-        if (item.text.toLowerCase().search(term) > -1) {
+        if (item.text.toLowerCase().indexOf(term) > -1) {
           return true;
         }
         return false;
@@ -155,7 +191,7 @@ class FilteredList extends React.Component {
           <input type="search" placeholder="Search filter" ref="search"
            className={'form-control search-query ' + (
              this.state.day || this.state.suggestday ? 'with-day-button' : '')}
-           onChange={this.filterList.bind(this)}/>
+           onChange={this.handleSearchChange.bind(this)}/>
            <Day suggestday={this.state.suggestday}
                 day={this.state.day}
                 onclick={this.handleDayButtonClick.bind(this)}/>

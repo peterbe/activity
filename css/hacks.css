@@ -27,3 +27,9 @@ div.input-group-addon.clear-search {
 dt {
     cursor: pointer;
 }
+
+
+/* Make the horsey list thing appear on top */
+ul.sey-list {
+    z-index: 1000;
+}

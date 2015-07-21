@@ -156,7 +156,7 @@ def populate_bugzilla_events(projects):
 
 def populate_bugzilla_comments(project, bug):
     import random
-    if random.randint(1, 20)!=1:
+    if random.randint(1, 25)!=1:
         return
     print "Fetch comments", bug['id']
     url = 'https://bugzilla.mozilla.org/rest/bug/{}/comment'.format(bug['id'])

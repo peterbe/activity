@@ -3,8 +3,6 @@ var webpack = require('webpack');
 module.exports = {
   entry: [
     'webpack/hot/only-dev-server',
-    // "./vendor/xdate.js",
-    // "./vendor/moment.min.js",
     "./src/js/app.js",
 
   ],
@@ -22,5 +20,5 @@ module.exports = {
   plugins: [
     new webpack.NoErrorsPlugin(),
   ],
-  
+
 };
