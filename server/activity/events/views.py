@@ -155,10 +155,10 @@ def populate_bugzilla_events(projects):
             )
 
 def populate_bugzilla_comments(project, bug):
-    print "BUGID", bug['id']
     import random
-    if random.randint(1, 25)!=1:
+    if random.randint(1, 20)!=1:
         return
+    print "Fetch comments", bug['id']
     url = 'https://bugzilla.mozilla.org/rest/bug/{}/comment'.format(bug['id'])
     comments = fetch(url)['bugs'][str(bug['id'])]['comments']
 
@@ -288,6 +288,12 @@ def populate_github_events(projects):
                 print event['type']
                 pprint(event['payload'])
                 continue
+            elif event['type'] == 'IssuesEvent':
+                url = event['payload']['issue']['html_url']
+                meta['issue'] = {
+                    'action': event['payload']['action'],
+                    'title': event['payload']['issue']['title'],
+                }
             else:
                 pprint(event)
                 raise NotImplementedError(event['type'])

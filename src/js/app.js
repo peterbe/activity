@@ -1,6 +1,6 @@
 import React from 'react';
-// import Sugar from 'sugar-date';
 import 'sugar-date';
+import 'whatwg-fetch';
 
 const months = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
 
@@ -25,7 +25,7 @@ class FilteredList extends React.Component {
   }
 
   componentDidMount() {
-    return;
+    // return;
     fetch('http://localhost:8000/events/socorro,dxr,airmozilla,kitsune')
       .then((response) => {
         return response.json()
@@ -240,6 +240,11 @@ class List extends React.Component {
               thing.text += `<a href="${thing.url}"><i>No title</i></a>`;
             }
 
+            break;
+          case 'IssuesEvent':
+            thing.text += 'GitHub Issue ';
+            thing.text += `<b>${thing.meta.issue.action}</b><br>`;
+            thing.text += `<a href="${thing.url}">${thing.meta.issue.title}</a>`
             break;
           case 'PullRequestReviewCommentEvent':
             thing.text += 'GitHub Pull Request Comment<br>';
