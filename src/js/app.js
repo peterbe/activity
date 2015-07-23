@@ -43,6 +43,7 @@ class FilteredList extends React.Component {
       let combined = item.heading + ' ' + item.text;
       combined = combined.replace(/(<([^>]+)>)/g, ' ');
       combined.match(/\S+/g).forEach(function(word) {
+        word = word.replace(/[,\.\]\)\}]$/, '');
         if (word.length > 1) {
           words.add(word);
         }
@@ -227,96 +228,6 @@ class Day extends React.Component {
 }
 
 class List extends React.Component {
-
-  simplifyThing(thing) {
-    thing.heading = thing.person.name ||
-                    thing.person.github ||
-                    thing.person.bugzilla ||
-                    thing.person.irc ||
-                    thing.person.email;
-
-    thing.text = '';
-    switch (thing.type) {
-      case 'bugzilla-comment':
-        thing.text += 'Bugzilla Comment<br>';
-        thing.text += `<a href="${thing.url}"
-          title="${thing.meta.text}"><b>${thing.meta.id}</b> ${thing.meta.summary}</a>`;
-        break;
-      case 'bugzilla-bug':
-        thing.text += 'Bugzilla Bug<br>';
-        thing.text += `<a href="${thing.url}"><b>${thing.meta.id}</b> ${thing.meta.summary}</a>`;
-        break;
-      case 'github':
-
-        switch (thing.meta.type) {
-          case 'PushEvent':
-            thing.text += 'GitHub Push<br>'
-            if (thing.meta.commits) {
-              thing.meta.commits.forEach((commit) => {
-                thing.text += `<a href="${commit.url}"
-                  title="${commit.message}">${commit.message}</a><br>`;
-              });
-            }
-            break;
-          case 'PullRequestEvent':
-            thing.text += 'GitHub Pull Request<br>'
-            if (thing.meta.title) {
-              thing.text += `<a href="${thing.url}"
-                title="${thing.meta.title}">${thing.meta.title}</a>`;
-            } else {
-              thing.text += `<a href="${thing.url}">URL</a>`;
-            }
-            break;
-          case 'IssueCommentEvent':
-            thing.text += 'GitHub Issue Comment<br>'
-            if (thing.meta.issue && thing.meta.issue.title) {
-              thing.text += `<a href="${thing.url}"
-                title="${thing.meta.issue.title}">${thing.meta.issue.title}</a>`;
-            } else {
-              thing.text += `<a href="${thing.url}"><i>No title</i></a>`;
-            }
-
-            break;
-          case 'IssuesEvent':
-            thing.text += 'GitHub Issue ';
-            thing.text += `<b>${thing.meta.issue.action}</b><br>`;
-            thing.text += `<a href="${thing.url}">${thing.meta.issue.title}</a>`
-            break;
-          case 'PullRequestReviewCommentEvent':
-            thing.text += 'GitHub Pull Request Comment<br>';
-            if (thing.meta.pull_request && thing.meta.pull_request.title) {
-              thing.text += `<a href="${thing.url}">${thing.meta.pull_request.title}</a>`;
-            } else {
-              thing.text += `<a href="${thing.url}"><i>No title</i></a>`;
-            }
-            break;
-          case 'CreateEvent':
-            thing.text += 'GitHub<br>';
-            if (thing.meta.tag) {
-              thing.text += `<a href="${thing.url}">Create tag ${thing.meta.tag}</a>`;
-            } else {
-              thing.text += `<a href="${thing.url}">Create something</a>`;
-            }
-            break;
-          default:
-            console.log('What about', thing.meta.type, thing.url);
-            console.log(thing.meta)
-            thing.text += 'GitHub';
-
-        }
-      break;
-
-      default:
-        thing.text = thing.type;
-    }
-    // thing.heading = thing.type;
-    if (thing.img) {
-      if (thing.img.charAt(thing.img.length - 1) === '?') {
-        thing.img += 's=32';
-      }
-    }
-  }
-
   renderThing(thing) {
 
     return [
@@ -359,7 +270,7 @@ class List extends React.Component {
             var texts = [];
             var lastThing;
             item.things.forEach((thing) => {
-              this.simplifyThing(thing);
+              // this.simplifyThing(thing);
               key = thing.heading + thing.project.name;
               if (key !== lastKey && lastKey !== null) {
                 lastThing.texts = texts;
