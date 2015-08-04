@@ -5,23 +5,27 @@ import horsey from 'horsey';
 
 const months = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
 
+var fetchingInterval;
+
 class FilteredList extends React.Component {
   // constructor(props) {
   //   super(props);
+
   constructor() {
     super();
 
     // this is synchronous
     var store = JSON.parse(
-      localStorage.getItem('activity') || '{"items": []}'
+      localStorage.getItem('activity') || '[]'
     );
 
     this.state = {
       day: null,
       search: null,
-      initialItems: store.items,
+      initialItems: store,
       items: [],
       lumpNames: true,
+      latestDate: null,
     }
   }
 
@@ -40,6 +44,7 @@ class FilteredList extends React.Component {
   getItemWordsTokenized() {
     let words = new Set();
     this.state.initialItems.forEach(function(item) {
+      words.add(item.heading);
       let combined = item.heading + ' ' + item.text;
       combined = combined.replace(/(<([^>]+)>)/g, ' ');
       combined.match(/\S+/g).forEach(function(word) {
@@ -52,25 +57,60 @@ class FilteredList extends React.Component {
     return Array.from(words);
   }
 
-  componentDidMount() {
-    this.setUpHorsey();
-    // return;
-    fetch('http://localhost:8000/events/socorro,dxr,airmozilla,kitsune')
+  updateLocalStorage() {
+    let url = 'http://localhost:8000/events/socorro,dxr,airmozilla,kitsune';
+    if (this.state.latestDate) {
+      url += '?since=' + encodeURIComponent(this.state.latestDate);
+    }
+    fetch(url)
       .then((response) => {
         return response.json()
       })
       .then((stuff) => {
-        localStorage.setItem('activity', JSON.stringify(stuff));
-        this.setState({
-          initialItems: stuff.items,
-          items: this.bucketThings(stuff.items, this.state.day)
-        });
-        this.setUpHorsey();
+        if (stuff.count) {
+          // let's remember this, skip if we have to
+          let store = JSON.parse(
+            localStorage.getItem('activity') || '[]'
+          );
+          let guids = store.map((item) => {
+            return item.id;
+          })
+          stuff.items.reverse();
+          stuff.items.forEach((item) => {
+            if (guids.indexOf(item.id) === -1) {
+              console.log("Adding new item to local storage store", item);
+              store.unshift(item);
+            }
+          });
+
+          this.setState({
+            latestDate: store[0].date,
+            initialItems: store,
+            // items: this.bucketThings(store, this.state.day)
+          });
+          this.setUpHorsey();
+
+          localStorage.setItem('activity', JSON.stringify(store));
+
+        }
       })
       .catch((ex) => {
         alert(ex);
         console.log('parsing failed', ex);
+
+        // XXX not sure if I want to give up just because of one error
+        clearInterval(fetchingInterval);
       });
+  }
+
+  componentDidMount() {
+    this.setUpHorsey();
+    // return;
+    this.updateLocalStorage();
+    fetchingInterval = setInterval(
+      this.updateLocalStorage.bind(this),
+      30 * 1000
+    );
   }
 
   bucketThings(items, currentDate) {

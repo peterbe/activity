@@ -1,6 +1,8 @@
 import datetime
 import hashlib
 import cgi
+import time
+import random
 from pprint import pprint
 
 import requests
@@ -14,6 +16,16 @@ from django.db import transaction
 from django.conf import settings
 
 from activity.events.models import Project, Event, Person
+
+
+IGNORED_BUG_COMMENTORS = (
+    u'mozilla+bugcloser@davedash.com',
+)
+
+
+def donothing(*args):
+    pass
+
 
 def add_cors_header(value):
     def decorator(f):
@@ -241,10 +253,17 @@ def simplify_event(event):
             )
         elif event.meta['type'] == 'CreateEvent':
             text = 'GitHub<br>'
-            if event.meta.tag:
+            if event.meta['create'].get('branch'):
+                text += (
+                    u'<a href="{event.url}">Created branch '
+                    u'{event.meta.create.branch}</a>'.format(
+                        event=escape(event)
+                    )
+                )
+            elif event.meta['create'].get('tag'):
                 text += (
                     u'<a href="{event.url}">Created tag '
-                    u'{event.meta.tag}</a>'.format(
+                    u'{event.meta.create.tag}</a>'.format(
                         event=escape(event)
                     )
                 )
@@ -255,6 +274,16 @@ def simplify_event(event):
                         event=escape(event)
                     )
                 )
+        elif event.meta['type'] == 'DeleteEvent':
+            if event.meta['delete'].get('branch'):
+                text += (
+                    u'Deleted branch <b>{event.meta.delete.branch}</b>'.format(
+                    event=escape(event)
+                    )
+                )
+            else:
+                print "Delete what?!"
+
         else:
             print "What about", event.meta['type'], event.url
             text = 'GitHub'
@@ -266,6 +295,7 @@ def simplify_event(event):
             event.img += 's=32'
 
     return {
+        'id': event.id,
         'date': event.date.isoformat(),
         'heading': heading,
         'text': text,
@@ -287,8 +317,12 @@ def events(request, projects):
     if projects.count() != len(project_names):
         raise http.Http404('No known projects')
 
-    populate_github_events(projects)  # should be triggered by a cron job
-    populate_bugzilla_events(projects)  # should be triggered by a cron job
+    since = None
+    if request.GET.get('since'):
+        since = arrow.get(request.GET['since']).datetime
+
+    # populate_github_events(projects)  # should be triggered by a cron job
+    # populate_bugzilla_events(projects)  # should be triggered by a cron job
 
     events = (
         Event.objects.filter(project__in=projects)
@@ -296,6 +330,9 @@ def events(request, projects):
         .select_related('project')
         .order_by('-date')
     )
+    if since:
+        events = events.filter(date__gt=since)
+
     page = int(request.GET.get('page', 1))
     page_size = 100
     events = events[(page - 1) * page_size: page * page_size]
@@ -306,15 +343,17 @@ def events(request, projects):
     for event in events:
         items.append(simplify_event(event))
 
+    print "Returning", events.count(), len(items)
     return http.JsonResponse({
         'count': events.count(),
         'items': items,
     })
 
 
-def populate_bugzilla_events(projects):
+def populate_bugzilla_events(projects, log=donothing, slowly=False):
     for project in projects:
         if not project.bugzilla_product:
+            log("Project", repr(project), "has no bugzilla_product")
             continue
 
         # this only gives us filed bugs
@@ -336,13 +375,16 @@ def populate_bugzilla_events(projects):
             params['token'] = settings.BUGZILLA_AUTH_TOKEN
 
         bugs = fetch(url, params)['bugs']
-        pprint(bugs[0])
-        pprint(bugs[1])
-        pprint(bugs[3])
         for bug in bugs:
+            log("BUG", repr(bug['summary']))
             guid = 'bugzilla-bug-{}'.format(bug['id'])
-            populate_bugzilla_comments(project, bug)
+            populate_bugzilla_comments(
+                project,
+                bug,
+                log=log,
+            )
             if Event.objects.filter(project=project, guid=guid).exists():
+                log("\tSkip!")
                 continue
 
             person, _ = Person.objects.get_or_create(
@@ -355,7 +397,6 @@ def populate_bugzilla_events(projects):
             url = 'https://bugzilla.mozilla.org/show_bug.cgi?id={}'.format(
                 bug['id']
             )
-            # print bug['creation_time']
             Event.objects.create(
                 guid=guid,
                 project=project,
@@ -370,20 +411,27 @@ def populate_bugzilla_events(projects):
                     'summary': bug['summary'],
                 }
             )
+            if slowly:
+                log("Pausing...")
+                time.sleep(random.randint(3, 7))
 
-def populate_bugzilla_comments(project, bug):
-    import random
-    if random.randint(1, 25)!=1:
-        return
-    print "Fetch comments", bug['id']
+
+def populate_bugzilla_comments(project, bug, log=donothing):
+    # import random
+    # if random.randint(1, 25)!=1:
+    #     return
+    log("Fetch comments", bug['id'])
     url = 'https://bugzilla.mozilla.org/rest/bug/{}/comment'.format(bug['id'])
     comments = fetch(url)['bugs'][str(bug['id'])]['comments']
 
     for i, comment in enumerate(comments):
-        # print "COMMENT"
-        # pprint(comment)
         guid = 'bugzilla-comment-{}'.format(comment['id'])
+        log("\tBUG COMMENT", comment['creator'], repr(comment['text'][:70]))
+        if comment['creator'] in IGNORED_BUG_COMMENTORS:
+            log("\t\tSkipping because creator ignored")
+            continue
         if Event.objects.filter(project=project, guid=guid).exists():
+            log("\t\tSkip")
             continue
         person, _ = Person.objects.get_or_create(
             email=comment['creator']
@@ -410,7 +458,7 @@ def populate_bugzilla_comments(project, bug):
 
 
 @transaction.atomic
-def populate_github_events(projects):
+def populate_github_events(projects, verbose=False):
 
     def fetch_github_name(username):
         user_info = fetch(
@@ -429,8 +477,8 @@ def populate_github_events(projects):
                 repo=repo
             )
         )
-
-        # pprint(github_events)
+        if verbose:
+            print repr(project), len(github_events)
         for event in github_events:
             guid = 'github-event-{}'.format(event['id'])
             if Event.objects.filter(project=project, guid=guid).exists():
@@ -497,14 +545,29 @@ def populate_github_events(projects):
                     tag=event['payload']['ref'],
                 )
                 meta['tag'] = event['payload']['ref']
-            elif (
-                event['type'] == 'CreateEvent' and
-                event['payload'].get('ref_type') == 'branch'
-            ):
-                print "Not sure what to do with these at the moment"
-                print event['type']
-                pprint(event['payload'])
-                continue
+            elif event['type'] == 'CreateEvent':
+                if event['payload']['ref_type'] == 'branch':
+                    url = 'https://github.com/{repo}/tree/{ref}'.format(
+                        repo=event['repo']['name'],
+                        ref=event['payload']['ref'],
+                    )
+                    meta['create'] = {
+                        event['payload']['ref_type']: event['payload']['ref']
+                    }
+                else:
+                    print "Not sure what to do with these at the moment"
+                    print event['type']
+                    pprint(event['payload'])
+                    continue
+            elif event['type'] == 'DeleteEvent':
+                # Not sure what to do with delete events because
+                # they usually don't have a URL.
+                url = 'https://github.com/{repo}'.format(
+                    repo=event['repo']['name'],
+                )
+                meta['delete'] = {
+                    event['payload']['ref_type']: event['payload']['ref']
+                }
             elif event['type'] == 'IssuesEvent':
                 url = event['payload']['issue']['html_url']
                 meta['issue'] = {
