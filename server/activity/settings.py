@@ -125,3 +125,6 @@ CELERY_IMPORTS = (
 IGNORED_BUG_COMMENTORS = (
     u'mozilla+bugcloser@davedash.com',
 )
+
+FANOUT_REALM = config('FANOUT_REALM')
+FANOUT_KEY = config('FANOUT_KEY')

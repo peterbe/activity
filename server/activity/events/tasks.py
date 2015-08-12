@@ -165,7 +165,7 @@ def populate_github_events(project_id, log=logger.info):
             pprint(event)
             raise NotImplementedError(event['type'])
         date = arrow.get(event['created_at']).datetime
-        Event.objects.create(
+        print "CREATED", Event.objects.create(
             guid=guid,
             project=project,
             person=person,

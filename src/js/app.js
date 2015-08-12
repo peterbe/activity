@@ -5,7 +5,7 @@ import horsey from 'horsey';
 
 const months = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
 
-var fetchingInterval;
+var updateInterval;
 
 class FilteredList extends React.Component {
   // constructor(props) {
@@ -27,6 +27,62 @@ class FilteredList extends React.Component {
       lumpNames: true,
       latestDate: null,
     }
+
+    var pendingUpdates = [];
+    var client = new Faye.Client('https://dfe3c5ed.fanoutcdn.com/bayeux');
+    // client.subscribe('/airmozilla', function (data) {
+    //   console.log('Socket DATA', data);
+    //   // alert('got data: ' + data);
+    //   pendingUpdates.push(data);
+    // });
+    client.subscribe('/activity', function (data) {
+      console.log('Socket DATA', data);
+      // alert('got data: ' + data);
+      pendingUpdates.push(data);
+    });
+
+    // The socket receiver doesn't immediately update the state
+    // because that would be too disruptive. Instead we bunch them
+    // up in `pendingUpdates` and periodically update the state
+    // when there's multiple things to do.
+    updateInterval = setInterval(() => {
+      // console.log('There are ' + pendingUpdates.length + ' updates.');
+      if (pendingUpdates.length) {
+        let store = JSON.parse(
+          localStorage.getItem('activity') || '[]'
+        );
+        // XXX is `store` here the same as this.state.initialItems??
+        // first we need a list of all the existing guids so we can't insert
+        // a duplicate
+        let guids = store.map((item) => {
+          return item.id;
+        });
+        var somethingNew = false;
+        pendingUpdates.forEach((item) => {
+          if (guids.indexOf(item) === -1) {
+            somethingNew = true;
+            store.unshift(item);
+          }
+        });
+        if (somethingNew) {
+          store.sort((a, b) => {
+            if (a.date < b.date) return 1;
+            if (a.date > b.date) return -1;
+            return 0;
+          });
+          // console.log('AFTER SORTING');
+          // console.log(store);
+          this.setState({
+            latestDate: store[0].date,
+            initialItems: store,
+          });
+          this.setUpHorsey();
+
+          localStorage.setItem('activity', JSON.stringify(store));
+        }
+        pendingUpdates = [];
+      }
+    }, 1000);
   }
 
   setUpHorsey() {
@@ -59,9 +115,6 @@ class FilteredList extends React.Component {
 
   updateLocalStorage() {
     let url = 'http://localhost:8000/events/socorro,dxr,airmozilla,kitsune';
-    if (this.state.latestDate) {
-      url += '?since=' + encodeURIComponent(this.state.latestDate);
-    }
     fetch(url)
       .then((response) => {
         return response.json()
@@ -74,7 +127,7 @@ class FilteredList extends React.Component {
           );
           let guids = store.map((item) => {
             return item.id;
-          })
+          });
           stuff.items.reverse();
           stuff.items.forEach((item) => {
             if (guids.indexOf(item.id) === -1) {
@@ -98,8 +151,6 @@ class FilteredList extends React.Component {
         alert(ex);
         console.log('parsing failed', ex);
 
-        // XXX not sure if I want to give up just because of one error
-        clearInterval(fetchingInterval);
       });
   }
 
@@ -107,10 +158,6 @@ class FilteredList extends React.Component {
     this.setUpHorsey();
     // return;
     this.updateLocalStorage();
-    fetchingInterval = setInterval(
-      this.updateLocalStorage.bind(this),
-      30 * 1000
-    );
   }
 
   bucketThings(items, currentDate) {

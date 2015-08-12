@@ -55,3 +55,10 @@ celery==3.1.18
 pytz==2015.4
 # sha256: pPs3sChg9rFhf2RpSHRx_Qht0tOLvOZAwgVYYrnEAZw
 redis==2.10.3
+# sha256: V1H4hELaARJsUf2uUjXylbAZDvHUOty2alevVW3Ky70
+fanout==1.2.0
+# sha256: 3sL1vUZmAcpV86wECgUnB7Lf2leek3ADpeTB7i_UEAs
+pubcontrol==2.2.7
+# sha256: oWyrBlHZmhlpA-RlIVmDdWLwRT7li7rZ6sydOwD-sBk
+# sha256: 4bI4bPrVQURbHUPkgLAso37Fcln9GiPnlBW1e6XYppQ
+PyJWT==1.4.0
