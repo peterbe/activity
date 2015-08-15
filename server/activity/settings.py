@@ -28,6 +28,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost:8000', cast=Csv())
 INSTALLED_APPS = (
     'activity.events',
     'rest_framework',
+    'djcelery',
     # 'django.contrib.admin',
     # 'django.contrib.auth',
     # 'django.contrib.contenttypes',
@@ -111,3 +112,16 @@ CACHES = {
 }
 
 BUGZILLA_AUTH_TOKEN = config('BUGZILLA_AUTH_TOKEN', default='')
+
+
+BROKER_URL = 'redis://localhost:6379/1'
+BROKER_TRANSPORT = 'redis'  # is this necessary?
+CELERYD_CONCURRENCY = 4
+
+CELERY_IMPORTS = (
+    'activity.events.tasks',
+)
+
+IGNORED_BUG_COMMENTORS = (
+    u'mozilla+bugcloser@davedash.com',
+)

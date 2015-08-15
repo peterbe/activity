@@ -27,3 +27,31 @@ arrow==0.5.4
 # sha256: PpVEXB21AKNEB5pHsXHEXvGPV9GI3_2w5BZccb6o6z0
 # sha256: KuY89HXwvQSbci-sIIE9Yq7cFJV91aO_ANEg0rVARGA
 python-dateutil==2.4.2
+# sha256: aI-UZrHDrhQQY4Hm29MoEV51xSYMVC60jmxGkx9pKMw
+billiard==3.3.0.20
+# sha256: _qhlOuS4en6wmWWUCfCeaANqe4PwoVoLxq7629mKUdw
+# sha256: H1ZavUTEt9-qTdVD1S-YLS8AaroKKzgwVCtNJagB_gk
+kombu==3.0.26
+# sha256: N4Ethjya0-NcBzTELgvwMgzow77YLNIK1UyzTRWBV7o
+anyjson==0.3.3
+# sha256: 406XZaYSD0ZkwSD0GYp4bDmg-35KWb0ZotbjqIS2OIk
+# sha256: 68_IZ95aaPn1uhTRHbrYjmr_hDWo05M51c6w5bBt5kA
+amqp==1.4.6
+# sha256: 2_WWGNWp7_Fy0lAh82YUvlrwUB5FJ5dcpQS5WGPxT-0
+# sha256: CST5QHDG_FfUCLFphIxbOIMmaP_-Bg5ItIA_sj4OPq8
+celery==3.1.18
+# sha256: mWbSw_hrIzdNqYkFhPFrA_bkYFWCTjChCHFpdNRdHkU
+# sha256: 98W-TbhvGnbMxMgH-QCFNidavsPigV0YJl1pSu7zyzw
+# sha256: bOkY5I2u1knhOqTrLOmdgCEkEUAb5CKIyURzqBEJJE4
+# sha256: ZEHnmPiGN0TJBXTeJTvtMoxHf9LIbK9SuNnYXx7Ln5Y
+# sha256: TWTtG54OcwlfXPqH8Ol920yEAEno7-t-Y7RhGLodYjo
+# sha256: Oe8FQeSJsc9VFc7fGx-Z3lhf1mBGPNzeQ6A9fZIEJ4I
+# sha256: aFsZlAJlchd0WK8UPMJKIIL0APGOY_3I4u1o3ZO7D0k
+# sha256: hEYBPfvemz9Pm_6glBjd1SZ2CoeYxBut0_cHqYrQdFs
+# sha256: 1f9wYInpFQdg0ji2YgOiTUoKYXUWBBAZGZX_BNGJP6o
+# sha256: p4tITVRy3Yxoj4s-7hhkaiXGbORbLCZlKFD2r5zlKxc
+# sha256: xO5wy0B_koRResNo8SHPB5anE0uWHlPZ2vGqro9E-5A
+# sha256: APNfsOfi_DSM0JHSXTbGdotyFGPRI5bWipSRqKX5Hs8
+pytz==2015.4
+# sha256: pPs3sChg9rFhf2RpSHRx_Qht0tOLvOZAwgVYYrnEAZw
+redis==2.10.3
