@@ -2,6 +2,8 @@ import React from 'react';
 import 'sugar-date';
 import 'whatwg-fetch';
 import horsey from 'horsey';
+import notify from 'bootstrap-notify';
+import $ from 'jquery';
 
 const months = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
 
@@ -30,14 +32,8 @@ class FilteredList extends React.Component {
 
     var pendingUpdates = [];
     var client = new Faye.Client('https://dfe3c5ed.fanoutcdn.com/bayeux');
-    // client.subscribe('/airmozilla', function (data) {
-    //   console.log('Socket DATA', data);
-    //   // alert('got data: ' + data);
-    //   pendingUpdates.push(data);
-    // });
     client.subscribe('/activity', function (data) {
       console.log('Socket DATA', data);
-      // alert('got data: ' + data);
       pendingUpdates.push(data);
     });
 
@@ -57,26 +53,42 @@ class FilteredList extends React.Component {
         let guids = store.map((item) => {
           return item.id;
         });
-        var somethingNew = false;
+        var countNew = 0;
         pendingUpdates.forEach((item) => {
           if (guids.indexOf(item) === -1) {
-            somethingNew = true;
+            countNew++;
             store.unshift(item);
           }
         });
-        if (somethingNew) {
+        if (countNew > 0) {
           store.sort((a, b) => {
             if (a.date < b.date) return 1;
             if (a.date > b.date) return -1;
             return 0;
           });
-          // console.log('AFTER SORTING');
-          // console.log(store);
           this.setState({
             latestDate: store[0].date,
             initialItems: store,
           });
           this.setUpHorsey();
+
+          let message = '';
+          if (countNew === 1) {
+            message = '<b>1</b> new event added!';
+          } else {
+            message = `<b>${countNew}</b> new events added!`;
+          }
+          $.notify({
+            icon: 'glyphicon glyphicon-flash',
+            message: message
+          }, {
+            delay: 3000,
+            spacing: 5,
+            offset: 10,
+            type: 'success',
+            z_index: 2001,
+            'placement.from': 'bottom',
+          });
 
           localStorage.setItem('activity', JSON.stringify(store));
         }

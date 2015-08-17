@@ -23,7 +23,7 @@ def donothing(*args):
     pass
 
 
-def fetch(url, params=None, expires=60 * 60):
+def fetch(url, params=None, expires=60 * 10):
     cache_key = hashlib.md5(url + str(params)).hexdigest()
     value = cache.get(cache_key)
     if value is None:
