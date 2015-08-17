@@ -94,7 +94,7 @@ class FilteredList extends React.Component {
         }
         pendingUpdates = [];
       }
-    }, 1000);
+    }, 2500);
   }
 
   setUpHorsey() {
