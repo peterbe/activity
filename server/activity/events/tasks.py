@@ -29,7 +29,10 @@ def fetch(url, params=None, expires=60 * 10):
     if value is None:
         r = requests.get(url, params=params or {})
         assert r.status_code == 200, r.status_code
-        value = r.json()
+        try:
+            value = r.json()
+        except ValueError:
+            raise ValueError(r.content)
         if expires:
             cache.set(cache_key, value, expires)
     return value
@@ -128,7 +131,9 @@ def populate_github_events(project_id, log=logger.info):
                 repo=event['repo']['name'],
                 tag=event['payload']['ref'],
             )
-            meta['tag'] = event['payload']['ref']
+            meta['create'] = {
+                event['payload']['ref_type']: event['payload']['ref']
+            }
         elif event['type'] == 'CreateEvent':
             if event['payload']['ref_type'] == 'branch':
                 url = 'https://github.com/{repo}/tree/{ref}'.format(

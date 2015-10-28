@@ -1,0 +1,13 @@
+* Add https://github.com/pete-otaqui/fpscounter and see how it performs
+
+* https://github.com/jschr/bootstrap-modal/ for admin'ing names
+
+* Use react-router so we can have urls like /airmozilla,kitsune
+
+* Reset localStorage right after a fresh AJAX fetch
+
+* Don't start the Faye.Client socket listener until after the first
+  successful AJAX get
+
+* At the bottom of the page, load more AJAX by looking up the last
+  date of all items in the store

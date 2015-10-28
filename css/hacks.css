@@ -28,6 +28,9 @@ dt {
     cursor: pointer;
 }
 
+.navbar-custom {
+    z-index: 201;
+}
 
 /* Make the horsey list thing appear on top */
 ul.sey-list {

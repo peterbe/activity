@@ -1,44 +1,79 @@
-import cgi
 import hashlib
 
-
-def escape(obj):
-    for k, value in obj.__dict__.items():
-        if isinstance(value, basestring):
-            obj.__dict__[k] = cgi.escape(value)
-        elif hasattr(value, '__dict__'):
-            obj.__dict__[k] = escape(value)
-    return obj
+from django.template import Template, Context
 
 
-class DotDict(dict):
+TEMPLATES = {}
+TEMPLATES['bugzilla-comment'] = Template("""
+    Bugzilla Comment<br>
+    <a href="{{event.url}}" title="{{event.meta.text}}"
+    ><b>{{event.meta.id}}</b> {{event.meta.summary}}</a>
+""")
 
-    def __init__(self, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
-        self._wrap_internal_dicts()
+TEMPLATES['bugzilla-bug'] = Template("""
+    Bugzilla Bug<br>
+    <a href="{{event.url}}" title="{{event.meta.summary}}"
+    ><b>{{event.meta.id}}</b> {{event.meta.summary}}</a>
+""")
 
-    def _wrap_internal_dicts(self):
-        for key, value in self.items():
-            if isinstance(value, dict):
-                self[key] = DotDict(value)
+TEMPLATES['github'] = Template("""
+    {% if event.meta.type == 'PushEvent' %}
+        GitHub Push<br>
+        {% for commit in event.meta.commits %}
+            <a href="{{commit.url}}" title="{{commit.message}}"
+            >{{commit.message}}</a><br>
+        {% endfor %}
+    {% elif event.meta.type == 'PullRequestEvent' %}
+        GitHub Pull Request<br>
+        <a href="{{event.url}}" title="{{event.meta.title}}"
+        >{{event.meta.title}}</a>
+    {% elif event.meta.type == 'IssueCommentEvent' %}
+        GitHub Issue Comment<br>
+        <a href="{{event.url}}" title="{{event.meta.issue.title}}"
+        >{{event.meta.issue.title}}</a>
+    {% elif event.meta.type == 'IssuesEvent' %}
+        GitHub Issue <b>{{event.meta.issue.action}}</b><br>
+        <a href="{{event.url}}">{{event.meta.issue.title}}</a>
+    {% elif event.meta.type == 'PullRequestReviewCommentEvent' %}
+        GitHub Pull Request Comment<br>
+        <a href="{{event.url}}" title="{{event.meta.pull_request.title}}"
+        >{{event.meta.pull_request.title}}</a>
+    {% elif event.meta.type == 'CreateEvent' %}
+        GitHub<br>
+        {% if event.meta.create.branch %}
+            <a href="{{event.url}}">Created branch
+            <b>{{event.meta.create.branch}}</b></a>
+        {% elif event.meta.create.tag %}
+            <a href="{{event.url}}">Created tag
+            <b>{{event.meta.create.tag}}</b></a>
+        {% else %}
+        WHAT?!
+        {% endif %}
+    {% elif event.meta.type == 'DeleteEvent' %}
+        {% if event.meta.delete.branch %}
+            Deleted branch <b>{{event.meta.delete.branch}}</b>
+        {% else %}
+            Delete wat?
+        {% endif %}
 
-    def __getattr__(self, key):
-        if key.startswith('__'):
-            raise AttributeError(key)
-        return self[key]
+    {% else %}
+        DON'T KNOW HOW TO RENDER {{ event.meta.type }}
+    {% endif %}
+""".strip())
 
 
 def simplify_event(event):
-    event.meta = DotDict(event.meta)
+    # print (event, event.type)
+    # event.meta = DotDict(event.meta)
 
     person = event.person
-    heading = (
-        person.name or
-        person.github or
-        person.bugzilla or
-        person.irc or
-        person.email
-    )
+    # heading = (
+    #     person.name or
+    #     person.github or
+    #     person.bugzilla or
+    #     person.irc or
+    #     person.email
+    # )
 
     if event.person.github_avatar_url:
         event.img = event.person.github_avatar_url
@@ -51,104 +86,12 @@ def simplify_event(event):
         print "What about this one?!"
 
     text = u''
-    if event.type == 'bugzilla-comment':
-        text += 'Bugzilla Comment<br>'
-        text += (
-            u'<a href="{event.url}" title="{event.meta.text}">'
-            u'<b>{event.meta.id}</b> {event.meta.summary}</a>'.format(
-                event=escape(event)
-            )
-        )
-    elif event.type == 'bugzilla-bug':
-        text += 'Bugzilla Bug<br>'
-        text += (
-            u'<a href="{event.url}" title="{event.meta.summary}">'
-            u'<b>{event.meta.id}</b> {event.meta.summary}</a>'.format(
-                event=escape(event)
-            )
-        )
-    elif event.type == 'github':
-        if event.meta['type'] == 'PushEvent':
-            text += 'GitHub Push<br>'
-            for commit in event.meta['commits']:
-                text += (
-                    u'<a href="{commit.url}" title="{commit.message}">'
-                    u'{commit.message}</a><br>'.format(
-                        commit=escape(DotDict(commit))
-                    )
-                )
-        elif event.meta['type'] == 'PullRequestEvent':
-            text += 'GitHub Pull Request<br>'
-            # XXX This should probably be {event.meta.pull_request.title}
-            text += (
-                u'<a href="{event.url}" title="{event.meta.title}">'
-                u'{event.meta.title}</a>'.format(
-                    event=escape(event)
-                )
-            )
-        elif event.meta['type'] == 'IssueCommentEvent':
-            text += 'GitHub Issue Comment<br>'
-            text += (
-                u'<a href="{event.url}" title="{event.meta.issue.title}">'
-                u'{event.meta.issue.title}</a>'.format(
-                    event=escape(event)
-                )
-            )
-        elif event.meta['type'] == 'IssuesEvent':
-            text += 'GitHub Issue <b>{event.meta.issue.action}</b>'.format(
-                event=escape(event)
-            )
-            text += (
-                u'<a href="{event.url}">{event.meta.issue.title}'
-                u'</a>'.format(
-                    event=escape(event)
-                )
-            )
-        elif event.meta['type'] == 'PullRequestReviewCommentEvent':
-            text += 'GitHub Pull Request Comment<br>'
-            text += (
-                u'<a href="{event.url}" '
-                u'title="{event.meta.pull_request.title}">'
-                u'{event.meta.pull_request.title}</a>'.format(
-                    event=escape(event)
-                )
-            )
-        elif event.meta['type'] == 'CreateEvent':
-            text = 'GitHub<br>'
-            if event.meta['create'].get('branch'):
-                text += (
-                    u'<a href="{event.url}">Created branch '
-                    u'{event.meta.create.branch}</a>'.format(
-                        event=escape(event)
-                    )
-                )
-            elif event.meta['create'].get('tag'):
-                text += (
-                    u'<a href="{event.url}">Created tag '
-                    u'{event.meta.create.tag}</a>'.format(
-                        event=escape(event)
-                    )
-                )
-            else:
-                print "Created What??", event
-                text += (
-                    u'<a href="{event.url}">Created something</a>'.format(
-                        event=escape(event)
-                    )
-                )
-        elif event.meta['type'] == 'DeleteEvent':
-            if event.meta['delete'].get('branch'):
-                text += (
-                    u'Deleted branch <b>{event.meta.delete.branch}</b>'.format(
-                        event=escape(event)
-                    )
-                )
-            else:
-                print "Delete what?!"
-
-        else:
-            print "What about", event.meta['type'], event.url
-            text = 'GitHub'
+    context = Context({
+        'event': event,
+        # 'getitem': lambda d, k: d.get(k),
+    })
+    if event.type in TEMPLATES:
+        text = TEMPLATES[event.type].render(context)
     else:
         text = event.type
 
@@ -159,9 +102,18 @@ def simplify_event(event):
     return {
         'id': event.id,
         'date': event.date.isoformat(),
-        'heading': heading,
-        'text': text,
+        # 'heading': heading,
+        'text': text.strip(),
         'img': event.img,
+        'person': {
+            'id': person.id,
+            'name': person.name,
+            'github': person.github,
+            'bugzilla': person.bugzilla,
+            'irc': person.irc,
+            'email': person.email,
+            'alias': person.alias,
+        },
         'project': {
             'name': event.project.name,
             'url': event.project.url,

@@ -4,6 +4,8 @@ import 'whatwg-fetch';
 import horsey from 'horsey';
 import notify from 'bootstrap-notify';
 import $ from 'jquery';
+import Modal from 'react-bootstrap-modal';
+
 
 const months = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
 
@@ -28,12 +30,13 @@ class FilteredList extends React.Component {
       items: [],
       lumpNames: true,
       latestDate: null,
+      editPerson: null,
     }
 
     var pendingUpdates = [];
     var client = new Faye.Client('https://dfe3c5ed.fanoutcdn.com/bayeux');
     client.subscribe('/activity', function (data) {
-      console.log('Socket DATA', data);
+      // console.log('Socket DATA', data);
       pendingUpdates.push(data);
     });
 
@@ -94,7 +97,7 @@ class FilteredList extends React.Component {
         }
         pendingUpdates = [];
       }
-    }, 2500);
+    }, 3500);
   }
 
   setUpHorsey() {
@@ -143,20 +146,18 @@ class FilteredList extends React.Component {
           stuff.items.reverse();
           stuff.items.forEach((item) => {
             if (guids.indexOf(item.id) === -1) {
-              console.log("Adding new item to local storage store", item);
+              // console.log("Adding new item to local storage store", item);
               store.unshift(item);
             }
           });
+          localStorage.setItem('activity', JSON.stringify(store));
 
           this.setState({
             latestDate: store[0].date,
             initialItems: store,
-            // items: this.bucketThings(store, this.state.day)
           });
+
           this.setUpHorsey();
-
-          localStorage.setItem('activity', JSON.stringify(store));
-
         }
       })
       .catch((ex) => {
@@ -251,6 +252,20 @@ class FilteredList extends React.Component {
     this.setState({search: null});
   }
 
+  handleSavePerson(person) {
+    console.log('TIME TO SAVE', person);
+    this.setState({editPerson: null});  // really?!
+  }
+
+  handleCloseEditPerson() {
+    this.setState({editPerson: null});
+  }
+
+  handleClickPerson(person) {
+    console.log('CLICKED PERSON', person);
+    this.setState({editPerson: person});
+  }
+
   render() {
     let items = this.state.initialItems;
     if (this.state.day) {
@@ -299,12 +314,121 @@ class FilteredList extends React.Component {
 
         <List
           onclick={this.handleClickDate.bind(this)}
+          onclickPerson={this.handleClickPerson.bind(this)}
           items={items}
           lumpNames={this.state.lumpNames}/>
+        <PersonModal
+          person={this.state.editPerson}
+          onSave={this.handleSavePerson.bind(this)}
+          onClose={this.handleCloseEditPerson.bind(this)} />
       </div>
     );
   }
 };
+
+
+class PersonModal extends React.Component {
+
+  constructor() {
+    console.log(arguments);
+    super();
+
+    // console.log('THIS.PROPS', this.props);
+    // console.log("In PersonModal constructor");
+    // this.state = {
+    //   // open: false,
+    //   person: this.props.person,
+    //   onSave: this.props.onSave,
+    //   onClose: this.props.onClose,
+    // };
+    this.state = {
+      name: '',
+      github: '',
+      email: '',
+      bugzilla: '',
+      irc: '',
+    };
+
+  }
+
+  handleClose() {
+    console.log('Close');
+    this.props.onClose();
+    // this.setState({open: false});
+  }
+
+  handleSaveAndClose() {
+    console.log("Save");
+    console.log("VALUE?", React.findDOMNode(this.refs.name).value);
+    this.props.onSave();
+    // this.state.onSave(this.state.person);
+    // this.setState({open: false});
+  }
+
+  render() {
+    // this.setState({open: this.props.person !== null});
+
+    // console.log('this.props.person=', this.props.person);
+    // let closeModal = () => this.setState({ open: false })
+    // let closeModal = () => console.log('CLOSE!');
+    //
+    // let saveAndClose = () => console.log('SAVE AND CLOSE!');
+
+    // let saveAndClose = () => {
+    //   api.saveData()
+    //     .then(() => this.setState({ open: false }))
+    // }
+    console.log('Render PersonModal', this.props.person);
+    let open = this.props.person !== null;
+    // let person = this.props.person;
+    let p = this.props.person;
+    let person = {
+      name: p && p.name || '',
+      github: p && p.github || '',
+      email: p && p.email || '',
+      bugzilla: p && p.bugzilla || '',
+      irc: p && p.irc || '',
+    };
+    console.log('this.refs.name=', this.refs.name);
+    // console.log(React.findDOMNode(this.refs.name));
+    // React.findDOMNode(this.refs.name).value = p && p.name || '';
+
+    return (
+        <Modal
+          show={open}
+          onHide={this.handleClose.bind(this)}
+          aria-labelledby="ModalHeader"
+        >
+          <Modal.Header closeButton>
+            <Modal.Title id="ModalHeader">Person Object</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <label>Name</label>
+            <input type="text" name="name" placeholder="Name" ref="name"/>
+            <br/>
+            <label>GitHub username</label>
+            <input type="text" name="github" placeholder="GitHub username" value={person.github}/>
+            <br/>
+            <label>Email</label>
+            <input type="text" name="email" placeholder="Email" ref="email"/>
+            <br/>
+            <label>Bugzilla name</label>
+            <input type="text" name="bugzilla" placeholder="Bugzilla name" value={person.bugzilla}/>
+            <br/>
+            <label>IRC username</label>
+            <input type="text" name="irc" placeholder="IRC username" value={person.irc}/>
+          </Modal.Body>
+          <Modal.Footer>
+            <Modal.Dismiss className="btn btn-default">Cancel</Modal.Dismiss>
+            <button className="btn btn-primary" onClick={this.handleSaveAndClose.bind(this)}>
+              Save
+            </button>
+          </Modal.Footer>
+        </Modal>
+    )
+  }
+};
+
 
 class Day extends React.Component {
   render() {
@@ -327,7 +451,10 @@ class Day extends React.Component {
 }
 
 class List extends React.Component {
+
   renderThing(thing) {
+    let p = thing.person;
+    let heading = p.name || p.github || p.bugzilla || p.irc || p.email;
 
     return [
       <div className="pull-left">
@@ -335,7 +462,7 @@ class List extends React.Component {
       </div>,
       <div className="events-body">
         <h4 className="events-heading">
-          {thing.heading}
+          <a onClick={this.props.onclickPerson.bind(this, thing.person)}>{heading}</a>
           <a className="project" href={thing.project.url}>{thing.project.name}</a>
         </h4>
         {
@@ -356,7 +483,7 @@ class List extends React.Component {
         this.props.items.map((item) => {
           left = !left;
           var pos = left ? 'pos-left' : 'pos-right';
-          var dateHeader = <dt title="123 days ago"
+          var dateHeader = <dt title="123 days ago ??? WORK TO DO"
             data-day-year={item.day[0]}
             data-day-month={item.day[1]}
             data-day-date={item.day[2]}
@@ -386,7 +513,7 @@ class List extends React.Component {
             }
           } else {
             item.things.forEach((thing) => {
-              this.simplifyThing(thing);
+              // this.simplifyThing(thing);
               thing.texts = [thing.text];
               lumped.push(thing);
             });
@@ -409,5 +536,7 @@ class List extends React.Component {
     )
   }
 };
+
+
 
 React.render(<FilteredList/>, document.getElementById('mount-point'));

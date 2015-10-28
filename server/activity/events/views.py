@@ -44,7 +44,7 @@ def events(request, projects):
         events = events.filter(date__gt=since)
 
     page = int(request.GET.get('page', 1))
-    page_size = 100
+    page_size = 300
     events = events[(page - 1) * page_size: page * page_size]
 
     items = []
@@ -53,7 +53,7 @@ def events(request, projects):
     for event in events:
         items.append(simplify_event(event))
 
-    print "Returning", events.count(), len(items)
+    # print "Returning", events.count(), len(items)
     return http.JsonResponse({
         'count': events.count(),
         'items': items,
