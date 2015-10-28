@@ -17,5 +17,4 @@ You need to terminals, one with:
 
 One with:
 
-    cd server
     ./manage.py runserver
