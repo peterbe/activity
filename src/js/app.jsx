@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import 'sugar-date';
 import 'whatwg-fetch';
 import horsey from 'horsey';
@@ -9,7 +10,21 @@ import Modal from 'react-bootstrap-modal';
 
 const months = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
 
+const STOPWORDS = (
+    "a able about across after all almost also am among an and " +
+    "any are as at be because been but by can cannot could dear " +
+    "did do does either else ever every for from get got had has " +
+    "have he her hers him his how however i if in into is it its " +
+    "just least let like likely may me might most must my " +
+    "neither no nor not of off often on only or other our own " +
+    "rather said say says she should since so some than that the " +
+    "their them then there these they this tis to too twas us " +
+    "wants was we were what when where which while who whom why " +
+    "will with would yet you your".split(/\s+/)
+);
+
 var updateInterval;
+var searchSoonTimer;
 
 class FilteredList extends React.Component {
   // constructor(props) {
@@ -107,20 +122,23 @@ class FilteredList extends React.Component {
       suggestions: suggestions,
       limit: 10
     });
-    el.addEventListener('horsey-selected', function(){
+    el.addEventListener('horsey-selected', function() {
       this.handleTermChange(el.value.toLowerCase());
     }.bind(this), false);
   }
 
   getItemWordsTokenized() {
     let words = new Set();
-    this.state.initialItems.forEach(function(item) {
-      words.add(item.heading);
-      let combined = item.heading + ' ' + item.text;
+    this.state.initialItems.forEach((item) => {
+      // console.log('ITEM', item);
+      if (item.person.name) {
+        words.add(item.person.name);
+      }
+      let combined = item.text;
       combined = combined.replace(/(<([^>]+)>)/g, ' ');
-      combined.match(/\S+/g).forEach(function(word) {
+      combined.match(/\S+/g).forEach((word) => {
         word = word.replace(/[,\.\]\)\}]$/, '');
-        if (word.length > 1) {
+        if (word.length > 1 && STOPWORDS.indexOf(word.toLowerCase()) == -1) {
           words.add(word);
         }
       })
@@ -156,20 +174,20 @@ class FilteredList extends React.Component {
             latestDate: store[0].date,
             initialItems: store,
           });
-
-          this.setUpHorsey();
         }
+        // delay this a little so that it doesn't cause strain
+        // at the precious boot-up time
+        setTimeout(() => {
+          this.setUpHorsey();
+        }, 1000);
       })
       .catch((ex) => {
         alert(ex);
         console.log('parsing failed', ex);
-
       });
   }
 
   componentDidMount() {
-    this.setUpHorsey();
-    // return;
     this.updateLocalStorage();
   }
 
@@ -207,8 +225,18 @@ class FilteredList extends React.Component {
 
   handleSearchChange(event) {
     let term = event.target.value.toLowerCase().trim();
-    // console.log('handleSearchChange', event, term);
-    this.handleTermChange(term);
+    if (term === '') {
+      this.handleTermChange('');
+    } else {
+      // throttle (aka. debounce) the state update a bit.
+      if (searchSoonTimer) {
+        clearTimeout(searchSoonTimer);
+      }
+      searchSoonTimer = setTimeout(() => {
+        this.handleTermChange(term);
+      }, 1000);
+    }
+
   }
 
   handleTermChange(term) {
@@ -239,7 +267,7 @@ class FilteredList extends React.Component {
         this.state.suggestday.getMonth(),
         this.state.suggestday.getDate()
       ];
-      React.findDOMNode(this.refs.search).value = '';
+      this.refs.search.value = '';
       this.setState({day: day, search: null, suggestday: null});
     } else if (this.state.day) {
       this.setState({day: null});
@@ -248,13 +276,8 @@ class FilteredList extends React.Component {
 
   handleResetSearch(e) {
     e.preventDefault();
-    React.findDOMNode(this.refs.search).value = '';
+    this.refs.search.value = '';
     this.setState({search: null});
-  }
-
-  handleSavePerson(person) {
-    console.log('TIME TO SAVE', person);
-    this.setState({editPerson: null});  // really?!
   }
 
   handleCloseEditPerson() {
@@ -262,7 +285,6 @@ class FilteredList extends React.Component {
   }
 
   handleClickPerson(person) {
-    console.log('CLICKED PERSON', person);
     this.setState({editPerson: person});
   }
 
@@ -284,9 +306,6 @@ class FilteredList extends React.Component {
         // OR statements much?!
         // Use onestring.indexOf(otherstring) because it doesn't
         // interpret it as a regular expression.
-        if (item.heading.toLowerCase().indexOf(term) > -1) {
-          return true;
-        }
         if (item.text.toLowerCase().indexOf(term) > -1) {
           return true;
         }
@@ -317,10 +336,12 @@ class FilteredList extends React.Component {
           onclickPerson={this.handleClickPerson.bind(this)}
           items={items}
           lumpNames={this.state.lumpNames}/>
+        { this.state.editPerson ?
         <PersonModal
           person={this.state.editPerson}
-          onSave={this.handleSavePerson.bind(this)}
+          onSave={this.handleCloseEditPerson.bind(this)}
           onClose={this.handleCloseEditPerson.bind(this)} />
+        : null}
       </div>
     );
   }
@@ -330,9 +351,9 @@ class FilteredList extends React.Component {
 class PersonModal extends React.Component {
 
   constructor() {
-    console.log(arguments);
+    // console.log(arguments);
     super();
-
+    // console.log('Constructing Modal');
     // console.log('THIS.PROPS', this.props);
     // console.log("In PersonModal constructor");
     // this.state = {
@@ -342,12 +363,15 @@ class PersonModal extends React.Component {
     //   onClose: this.props.onClose,
     // };
     this.state = {
-      name: '',
-      github: '',
-      email: '',
-      bugzilla: '',
-      irc: '',
+      open: true,
     };
+    // this.state = {
+    //   name: '',
+    //   github: '',
+    //   email: '',
+    //   bugzilla: '',
+    //   irc: '',
+    // };
 
   }
 
@@ -359,64 +383,79 @@ class PersonModal extends React.Component {
 
   handleSaveAndClose() {
     console.log("Save");
-    console.log("VALUE?", React.findDOMNode(this.refs.name).value);
+    console.log('IRC', this.refs.irc.value.trim());
+    console.log('NAME', this.refs.name.value.trim());
+    console.log("need to save all this stuff in localStorage now");
+
+    this.setState({open: false});
     this.props.onSave();
-    // this.state.onSave(this.state.person);
-    // this.setState({open: false});
+
   }
 
   render() {
-    // this.setState({open: this.props.person !== null});
-
-    // console.log('this.props.person=', this.props.person);
-    // let closeModal = () => this.setState({ open: false })
-    // let closeModal = () => console.log('CLOSE!');
-    //
-    // let saveAndClose = () => console.log('SAVE AND CLOSE!');
-
-    // let saveAndClose = () => {
-    //   api.saveData()
-    //     .then(() => this.setState({ open: false }))
-    // }
     console.log('Render PersonModal', this.props.person);
-    let open = this.props.person !== null;
-    // let person = this.props.person;
-    let p = this.props.person;
-    let person = {
-      name: p && p.name || '',
-      github: p && p.github || '',
-      email: p && p.email || '',
-      bugzilla: p && p.bugzilla || '',
-      irc: p && p.irc || '',
-    };
-    console.log('this.refs.name=', this.refs.name);
-    // console.log(React.findDOMNode(this.refs.name));
-    // React.findDOMNode(this.refs.name).value = p && p.name || '';
-
+    let person = this.props.person;
+    // let open = true;
     return (
         <Modal
-          show={open}
+          show={this.state.open}
+          bsSize="large"
           onHide={this.handleClose.bind(this)}
           aria-labelledby="ModalHeader"
         >
           <Modal.Header closeButton>
-            <Modal.Title id="ModalHeader">Person Object</Modal.Title>
+            <Modal.Title id="ModalHeader">{person.name || 'Person Object'}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <label>Name</label>
-            <input type="text" name="name" placeholder="Name" ref="name"/>
-            <br/>
-            <label>GitHub username</label>
-            <input type="text" name="github" placeholder="GitHub username" value={person.github}/>
-            <br/>
-            <label>Email</label>
-            <input type="text" name="email" placeholder="Email" ref="email"/>
-            <br/>
-            <label>Bugzilla name</label>
-            <input type="text" name="bugzilla" placeholder="Bugzilla name" value={person.bugzilla}/>
-            <br/>
-            <label>IRC username</label>
-            <input type="text" name="irc" placeholder="IRC username" value={person.irc}/>
+            <div className="form-group">
+              <label>Name</label>
+              <input
+                type="text"
+                className="form-control"
+                name="name"
+                placeholder="Name"
+                ref="name"
+                defaultValue={person.name}/>
+            </div>
+            <div className="form-group">
+              <label>GitHub username</label>
+              <input
+                type="text"
+                name="github"
+                className="form-control"
+                placeholder="GitHub username"
+                defaultValue={person.github}/>
+            </div>
+            <div className="form-group">
+              <label>Email</label>
+              <input
+                type="text"
+                className="form-control"
+                name="email"
+                placeholder="Email"
+                ref="email"
+                defaultValue={person.email}/>
+            </div>
+            <div className="form-group">
+              <label>Bugzilla name</label>
+              <input
+                type="text"
+                name="bugzilla"
+                className="form-control"
+                placeholder="Bugzilla name"
+                ref="bugzilla"
+                defaultValue={person.bugzilla}/>
+            </div>
+            <div className="form-group">
+              <label>IRC username</label>
+              <input
+                type="text"
+                name="irc"
+                className="form-control"
+                placeholder="IRC username"
+                ref="irc"
+                defaultValue={person.irc}/>
+            </div>
           </Modal.Body>
           <Modal.Footer>
             <Modal.Dismiss className="btn btn-default">Cancel</Modal.Dismiss>
@@ -539,4 +578,4 @@ class List extends React.Component {
 
 
 
-React.render(<FilteredList/>, document.getElementById('mount-point'));
+ReactDOM.render(<FilteredList/>, document.getElementById('mount-point'));
