@@ -97,7 +97,7 @@ def simplify_event(event):
 
     if event.img:
         if event.img[-1] == '?':
-            event.img += 's=32'
+            event.img += 's=50'
 
     return {
         'id': event.id,

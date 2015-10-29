@@ -118,6 +118,9 @@ class FilteredList extends React.Component {
   setUpHorsey() {
     let suggestions = this.getItemWordsTokenized();
     let el = document.querySelector('input[type="search"]');
+    if (el === null) {
+      throw new Error('Search input is null');
+    }
     horsey(el, {
       suggestions: suggestions,
       limit: 10
@@ -192,6 +195,7 @@ class FilteredList extends React.Component {
   }
 
   bucketThings(items, currentDate) {
+    throw new Error("Stop this");
     var newItems = [];
     var lastDate = null;
     var lastDay;
@@ -312,12 +316,22 @@ class FilteredList extends React.Component {
         return false;
       });
     }
-    items = this.bucketThings(items, this.state.day);
+    // items = this.bucketThings(items, this.state.day);
 
     return (
-      <div className="timeline">
+      <div>
+        <div className="ui big labeled fluid left icon input">
+          <i className="search icon"></i>
+          <input
+            placeholder="Filter by searching..."
+            type="search"
+            ref="search"
+            onChange={this.handleSearchChange.bind(this)}/>
+        </div>
+
+        {/*
         <div className="input-group form-search">
-          <div className="input-group-addon clear-search"
+          {<div className="input-group-addon clear-search"
                title="Clear search"
              onClick={this.handleResetSearch.bind(this)}>
             <span className="glyphicon glyphicon-remove"></span>
@@ -326,11 +340,12 @@ class FilteredList extends React.Component {
            className={'form-control search-query ' + (
              this.state.day || this.state.suggestday ? 'with-day-button' : '')}
            onChange={this.handleSearchChange.bind(this)}/>
+
            <Day suggestday={this.state.suggestday}
                 day={this.state.day}
                 onclick={this.handleDayButtonClick.bind(this)}/>
-        </div>
 
+        </div>*/}
         <List
           onclick={this.handleClickDate.bind(this)}
           onclickPerson={this.handleClickPerson.bind(this)}
@@ -489,87 +504,130 @@ class Day extends React.Component {
 class List extends React.Component {
 
   renderThing(thing) {
-    let p = thing.person;
-    let heading = p.name || p.github || p.bugzilla || p.irc || p.email;
+    // let p = thing.person;
+    // let heading = p.name || p.github || p.bugzilla || p.irc || p.email;
 
-    return [
-      <div className="pull-left">
-        <img className="events-object img-rounded" src={thing.img} width="32"/>
-      </div>,
-      <div className="events-body">
-        <h4 className="events-heading">
-          <a onClick={this.props.onclickPerson.bind(this, thing.person)}>{heading}</a>
-          <a className="project" href={thing.project.url}>{thing.project.name}</a>
-        </h4>
-        {
-          thing.texts.map((text) => {
-            return <p dangerouslySetInnerHTML={{__html: text}}></p>
-          })
-        }
+    // console.log(thing);
+    return (
+      <div className="event" key={thing.id}>
+        <div className="label">
+          <img src={thing.img}/>
+        </div>
+        <div className="content">
+          <div className="summary">
+            <a onClick={this.props.onclickPerson.bind(this, thing.person)}>{thing.heading}</a>
+            <div className="date">
+              1 hour ago
+            </div>
+          </div>
+          <div className="extra text">
+            {
+              thing.texts.map((text, i) => {
+                return <p key={thing.id + i} dangerouslySetInnerHTML={{__html: text}}></p>
+              })
+            }
+          </div>
+        </div>
       </div>
-    ]
+    )
   }
 
   render() {
     var left = false;
     let lumpNames = this.props.lumpNames;
-    return (
-      <dl>
-        {
-        this.props.items.map((item) => {
-          left = !left;
-          var pos = left ? 'pos-left' : 'pos-right';
-          var dateHeader = <dt title="123 days ago ??? WORK TO DO"
-            data-day-year={item.day[0]}
-            data-day-month={item.day[1]}
-            data-day-date={item.day[2]}
-            onClick={this.props.onclick}>{item.date}</dt>
-
-          let lumped = [];
-          if (lumpNames) {
-            var lastKey = null;
-            var key;
-            var texts = [];
-            var lastThing;
-            item.things.forEach((thing) => {
-              // this.simplifyThing(thing);
-              key = thing.heading + thing.project.name;
-              if (key !== lastKey && lastKey !== null) {
-                lastThing.texts = texts;
-                lumped.push(lastThing)
-                texts = [];
-              }
-              texts.push(thing.text);
-              lastKey = key;
-              lastThing = thing;
-            });
-            if (texts.length) {
-              lastThing.texts = texts;
-              lumped.push(lastThing);
-            }
-          } else {
-            item.things.forEach((thing) => {
-              // this.simplifyThing(thing);
-              thing.texts = [thing.text];
-              lumped.push(thing);
-            });
-          }
-
-          return [
-              dateHeader,
-              <dd className={pos +" clearfix"}>
-                <div className="circ"></div>
-                <div className="events">
-                {
-                  lumped.map(this.renderThing.bind(this))
-                }
-                </div>
-              </dd>
-          ];
-        })
+    let lumped = [];
+    if (this.props.lumpNames) {
+      let lastKey = null;
+      let key;
+      let texts = [];
+      let lastThing;
+      this.props.items.forEach((thing) => {
+        let p = thing.person;
+        thing.heading = p.name || p.github || p.bugzilla || p.irc || p.email;
+        key = thing.heading + thing.project.name;
+        if (key !== lastKey && lastKey !== null) {
+          lastThing.texts = texts;
+          lumped.push(lastThing)
+          texts = [];
+        }
+        texts.push(thing.text);
+        lastKey = key;
+        lastThing = thing;
+      });
+      if (texts.length) {
+        lastThing.texts = texts;
+        lumped.push(lastThing);
       }
-      </dl>
+    } else {
+      lumped = this.props.items.map((thing) => {
+        thing.texts = [thing.text];
+        return thing;
+      });
+    }
+    return (
+      <div className="ui large feed">
+        {
+          lumped.map(this.renderThing.bind(this))
+        }
+      </div>
     )
+    // return (
+    //   <dl>
+    //     {
+    //     this.props.items.map((item) => {
+    //       left = !left;
+    //       var pos = left ? 'pos-left' : 'pos-right';
+    //       var dateHeader = <dt title="123 days ago ??? WORK TO DO"
+    //         data-day-year={item.day[0]}
+    //         data-day-month={item.day[1]}
+    //         data-day-date={item.day[2]}
+    //         onClick={this.props.onclick}>{item.date}</dt>
+    //
+    //       let lumped = [];
+    //       if (lumpNames) {
+    //         var lastKey = null;
+    //         var key;
+    //         var texts = [];
+    //         var lastThing;
+    //         item.things.forEach((thing) => {
+    //           // this.simplifyThing(thing);
+    //           key = thing.heading + thing.project.name;
+    //           if (key !== lastKey && lastKey !== null) {
+    //             lastThing.texts = texts;
+    //             lumped.push(lastThing)
+    //             texts = [];
+    //           }
+    //           texts.push(thing.text);
+    //           lastKey = key;
+    //           lastThing = thing;
+    //         });
+    //         if (texts.length) {
+    //           lastThing.texts = texts;
+    //           lumped.push(lastThing);
+    //         }
+    //       } else {
+    //         item.things.forEach((thing) => {
+    //           // this.simplifyThing(thing);
+    //           thing.texts = [thing.text];
+    //           lumped.push(thing);
+    //         });
+    //       }
+    //
+    //       return [
+    //           dateHeader,
+    //           <dd className={pos +" clearfix"}>
+    //             <div className="circ"></div>
+    //             <div className="events">
+    //             {
+    //               lumped.map(this.renderThing.bind(this))
+    //             }
+    //             </div>
+    //           </dd>
+    //       ];
+    //     })
+    //   }
+    //   </dl>
+    // )
   }
 };
 

@@ -1,67 +1,145 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-  <meta charset="utf-8">
+  <!-- Standard Meta -->
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
   <title>Activity</title>
-  <!-- Sets initial viewport load and disables zooming  -->
-  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
-  <!-- build:css -->
-  <link rel="stylesheet" href="css/site.min.css">
-  <link rel="stylesheet" href="css/rbm-patch.css">
-  <link rel="stylesheet" href="css/hacks.css">
-  <link rel="stylesheet" href="css/horsey.min.css">
-  <link rel="stylesheet" href="css/animate.css">
-  <!-- endbuild -->
-  <link href="//fonts.googleapis.com/css?family=Open+Sans:400,300,600,800,700,400italic,600italic,700italic,800italic,300italic" rel="stylesheet" type="text/css">
-  <!-- <link href='http://fonts.googleapis.com/css?family=Lato:300,400,700' rel='stylesheet' type='text/css'> -->
-  <!-- HTML5 shim, for IE6-8 support of HTML5 elements. All other JS at the end of file. -->
-  <!--[if lt IE 9]>
-      <script src="js/html5shiv.js"></script>
-      <script src="js/respond.min.js"></script>
-    <![endif]-->
+
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/reset.css">
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/site.css">
+
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/container.css">
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/grid.css">
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/header.css">
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/image.css">
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/menu.css">
+
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/divider.css">
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/list.css">
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/segment.css">
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/dropdown.css">
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/feed.css">
+  <!-- <link rel="stylesheet" type="text/css" href="static/css/semantic/search.css"> -->
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/input.css">
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/icon.css">
+  <link rel="stylesheet" type="text/css" href="static/css/semantic/transition.css">
+  <link rel="stylesheet" type="text/css" href="static/css/horsey.min.css">
+
+  <!-- <script src="static/js/jquery.min.js"></script>
+  <script src="static/js/transition.js"></script>
+  <script src="static/js/dropdown.js"></script>
+  <script src="static/js/visibility.js"></script> -->
+  <script>
+  // $(document)
+  //   .ready(function() {
+  //
+  //     // fix main menu to page on passing
+  //     // $('.main.menu').visibility({
+  //     //   type: 'fixed'
+  //     // });
+  //     // $('.overlay').visibility({
+  //     //   type: 'fixed',
+  //     //   offset: 80
+  //     // });
+  //
+  //     // lazy load image
+  //   })
+  // ;
+  </script>
+
+  <style type="text/css">
+
+  body {
+    background-color: #FFFFFF;
+  }
+  .main.container {
+    margin-top: 2em;
+  }
+
+  .main.menu {
+    margin-top: 4em;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    transition:
+      box-shadow 0.5s ease,
+      padding 0.5s ease
+    ;
+  }
+  .main.menu .item img.logo {
+    margin-right: 1.5em;
+  }
+
+  .overlay {
+    float: left;
+    margin: 0em 3em 1em 0em;
+  }
+  .overlay .menu {
+    position: relative;
+    left: 0;
+    transition: left 0.5s ease;
+  }
+
+  .main.menu.fixed {
+    background-color: #FFFFFF;
+    border: 1px solid #DDD;
+    box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.2);
+  }
+  .overlay.fixed .menu {
+    left: 800px;
+  }
+
+  .text.container .left.floated.image {
+    margin: 2em 2em 2em -4em;
+  }
+  .text.container .right.floated.image {
+    margin: 2em -4em 2em 2em;
+  }
+
+  .ui.footer.segment {
+    margin: 5em 0em 0em;
+    padding: 5em 0em;
+  }
+  </style>
+
 </head>
+<body>
 
-<body style="background-color: #f1f2f6;">
-  <div class="docs-header">
-    <!--nav-->
-    <nav class="navbar navbar-default navbar-custom" role="navigation">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="/">Activity</a>
-        </div>
-        <div class="collapse navbar-collapse">
-          <ul class="nav navbar-nav navbar-right">
-            <li><a class="nav-link" href="getting-started.html">Getting Started</a></li>
-            <li><a class="nav-link current" href="documentation.html">Documentation</a></li>
-          </ul>
-        </div>
-      </div>
-    </nav>
-    <!--documents-->
-    <div class="container documents" id="mount-point">
-
-    </div>
-    <!--footer-->
-    <div class="site-footer">
-      <div class="container">
-        <hr class="dashed" />
-        <div class="copyright clearfix">
-          <p>&copy; 2015 <a href="http://www.peterbe.com" target="_blank">peterbe</a></p>
-        </div>
-      </div>
-    </div>
-
+  <div class="ui main text container">
+    <h1 class="ui header">Activity</h1>
   </div>
 
-<script src="http://dfe3c5ed.fanoutcdn.com/bayeux/static/faye-browser-min.js"></script>
-<script src="bundle.js"></script>
+
+  <!-- <div class="ui borderless main menu">
+    <div class="ui text container">
+      <div href="#" class="header item">
+        Activity
+      </div>
+      <a href="#" class="item">About</a>
+      <a href="#" class="item">The Code</a>
+    </div>
+  </div> -->
+
+  <div class="ui text container" id="mount-point">
+  </div>
+
+  <div class="ui inverted vertical footer segment">
+    <div class="ui center aligned container">
+      <div class="ui horizontal inverted small divided link list">
+        <a class="item" href="#">Site Map</a>
+        <a class="item" href="#">Contact Us</a>
+        <a class="item" href="#">Terms and Conditions</a>
+        <a class="item" href="#">Privacy Policy</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="http://dfe3c5ed.fanoutcdn.com/bayeux/static/faye-browser-min.js"></script>
+  <script src="bundle.js"></script>
 
 </body>
+
 </html>
