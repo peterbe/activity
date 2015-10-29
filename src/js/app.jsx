@@ -385,17 +385,14 @@ class PersonModal extends React.Component {
     console.log("Save");
     console.log('IRC', this.refs.irc.value.trim());
     console.log('NAME', this.refs.name.value.trim());
-    console.log("need to save all this stuff in localStorage now");
-
+    alert("need to save all this stuff in localStorage now");
     this.setState({open: false});
     this.props.onSave();
-
   }
 
   render() {
     console.log('Render PersonModal', this.props.person);
     let person = this.props.person;
-    // let open = true;
     return (
         <Modal
           show={this.state.open}
@@ -460,7 +457,7 @@ class PersonModal extends React.Component {
           <Modal.Footer>
             <Modal.Dismiss className="btn btn-default">Cancel</Modal.Dismiss>
             <button className="btn btn-primary" onClick={this.handleSaveAndClose.bind(this)}>
-              Save
+              Save locally
             </button>
           </Modal.Footer>
         </Modal>
