@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import 'sugar-date';
 import 'whatwg-fetch';
 import horsey from 'horsey';
-import notify from 'bootstrap-notify';
+import noty from 'noty';
 import $ from 'jquery';
 import Modal from 'react-bootstrap-modal';
 
@@ -23,12 +23,27 @@ const STOPWORDS = (
     "will with would yet you your".split(/\s+/)
 );
 
+let lazyLoadCSS = (() => {
+  let loaded = [];
+  return (url) => {
+    if (loaded.indexOf(url) === -1) {
+      loaded.push(url);
+      requestAnimationFrame(() => {
+        let l = document.createElement('link');
+        l.rel = 'stylesheet';
+        l.href = url;
+        let h = document.getElementsByTagName('head')[0];
+        h.parentNode.insertBefore(l, h);
+      });
+    }
+  };
+})();
+
+
 var updateInterval;
 var searchSoonTimer;
 
 class FilteredList extends React.Component {
-  // constructor(props) {
-  //   super(props);
 
   constructor() {
     super();
@@ -55,12 +70,14 @@ class FilteredList extends React.Component {
       pendingUpdates.push(data);
     });
 
+    // CSS that might be used by this component
+    lazyLoadCSS('static/css/animate.css')
+
     // The socket receiver doesn't immediately update the state
     // because that would be too disruptive. Instead we bunch them
     // up in `pendingUpdates` and periodically update the state
     // when there's multiple things to do.
     updateInterval = setInterval(() => {
-      // console.log('There are ' + pendingUpdates.length + ' updates.');
       if (pendingUpdates.length) {
         let store = JSON.parse(
           localStorage.getItem('activity') || '[]'
@@ -96,23 +113,35 @@ class FilteredList extends React.Component {
           } else {
             message = `<b>${countNew}</b> new events added!`;
           }
-          $.notify({
-            icon: 'glyphicon glyphicon-flash',
-            message: message
-          }, {
-            delay: 3000,
-            spacing: 5,
-            offset: 10,
+
+          let notification = noty({
+            text: message,
             type: 'success',
-            z_index: 2001,
-            'placement.from': 'bottom',
+            killer: true,
+            theme: 'relax',
+            layout: 'topRight',
+            timeout: 5,
+            animation: {
+                // check out options on http://daneden.github.io/animate.css/
+                open: 'animated bounceInDown',
+                close: 'animated bounceOutUp',
+                easing: 'swing', // easing
+                speed: 500 // opening & closing animation speed
+            },
+            callback: {
+              onShow: () => {
+                setTimeout(() => {
+                  notification.close();
+                }, 3500)
+              },
+            }
           });
 
           localStorage.setItem('activity', JSON.stringify(store));
         }
         pendingUpdates = [];
       }
-    }, 3500);
+    }, 4000);
   }
 
   setUpHorsey() {
@@ -133,7 +162,6 @@ class FilteredList extends React.Component {
   getItemWordsTokenized() {
     let words = new Set();
     this.state.initialItems.forEach((item) => {
-      // console.log('ITEM', item);
       if (item.person.name) {
         words.add(item.person.name);
       }
@@ -167,7 +195,6 @@ class FilteredList extends React.Component {
           stuff.items.reverse();
           stuff.items.forEach((item) => {
             if (guids.indexOf(item.id) === -1) {
-              // console.log("Adding new item to local storage store", item);
               store.unshift(item);
             }
           });
@@ -366,34 +393,14 @@ class FilteredList extends React.Component {
 class PersonModal extends React.Component {
 
   constructor() {
-    // console.log(arguments);
     super();
-    // console.log('Constructing Modal');
-    // console.log('THIS.PROPS', this.props);
-    // console.log("In PersonModal constructor");
-    // this.state = {
-    //   // open: false,
-    //   person: this.props.person,
-    //   onSave: this.props.onSave,
-    //   onClose: this.props.onClose,
-    // };
     this.state = {
       open: true,
     };
-    // this.state = {
-    //   name: '',
-    //   github: '',
-    //   email: '',
-    //   bugzilla: '',
-    //   irc: '',
-    // };
-
   }
 
   handleClose() {
-    console.log('Close');
     this.props.onClose();
-    // this.setState({open: false});
   }
 
   handleSaveAndClose() {
