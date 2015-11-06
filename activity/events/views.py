@@ -48,12 +48,10 @@ def events(request, projects):
     events = events[(page - 1) * page_size: page * page_size]
 
     items = []
-    # persons = ()
 
     for event in events:
         items.append(simplify_event(event))
 
-    # print "Returning", events.count(), len(items)
     return http.JsonResponse({
         'count': events.count(),
         'items': items,

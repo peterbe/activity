@@ -137,6 +137,7 @@ class FilteredList extends React.Component {
             }
           });
 
+          console.log('Storing', store.length, 'items');
           localStorage.setItem('activity', JSON.stringify(store));
         }
         pendingUpdates = [];
@@ -178,7 +179,7 @@ class FilteredList extends React.Component {
   }
 
   updateLocalStorage() {
-    let url = 'http://localhost:8000/events/socorro,dxr,airmozilla,kitsune';
+    let url = 'http://localhost:8000/events/socorro,dxr,airmozilla';
     fetch(url)
       .then((response) => {
         return response.json()
@@ -337,9 +338,8 @@ class FilteredList extends React.Component {
         // OR statements much?!
         // Use onestring.indexOf(otherstring) because it doesn't
         // interpret it as a regular expression.
-        if (item.text.toLowerCase().indexOf(term) > -1) {
-          return true;
-        }
+        if (item.heading.toLowerCase().indexOf(term) > -1) return true;
+        if (item.text.toLowerCase().indexOf(term) > -1) return true;
         return false;
       });
     }
@@ -511,10 +511,6 @@ class Day extends React.Component {
 class List extends React.Component {
 
   renderThing(thing) {
-    // let p = thing.person;
-    // let heading = p.name || p.github || p.bugzilla || p.irc || p.email;
-
-    // console.log(thing);
     return (
       <div className="event" key={thing.id}>
         <div className="label">

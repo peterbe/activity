@@ -5,39 +5,42 @@ from django.template import Template, Context
 
 TEMPLATES = {}
 TEMPLATES['bugzilla-comment'] = Template("""
+    {% load extras %}
     Bugzilla Comment<br>
     <a href="{{event.url}}" title="{{event.meta.text}}"
-    ><b>{{event.meta.id}}</b> {{event.meta.summary}}</a>
+    ><b>{{event.meta.id}}</b> {{event.meta.summary|firstline}}</a>
 """)
 
 TEMPLATES['bugzilla-bug'] = Template("""
+    {% load extras %}
     Bugzilla Bug<br>
     <a href="{{event.url}}" title="{{event.meta.summary}}"
-    ><b>{{event.meta.id}}</b> {{event.meta.summary}}</a>
+    ><b>{{event.meta.id}}</b> {{event.meta.summary|firstline}}</a>
 """)
 
 TEMPLATES['github'] = Template("""
+{% load extras %}
     {% if event.meta.type == 'PushEvent' %}
         GitHub Push<br>
         {% for commit in event.meta.commits %}
             <a href="{{commit.url}}" title="{{commit.message}}"
-            >{{commit.message}}</a><br>
+            >{{commit.message|firstline}}</a><br>
         {% endfor %}
     {% elif event.meta.type == 'PullRequestEvent' %}
         GitHub Pull Request<br>
         <a href="{{event.url}}" title="{{event.meta.title}}"
-        >{{event.meta.title}}</a>
+        >{{event.meta.title|firstline}}</a>
     {% elif event.meta.type == 'IssueCommentEvent' %}
         GitHub Issue Comment<br>
         <a href="{{event.url}}" title="{{event.meta.issue.title}}"
-        >{{event.meta.issue.title}}</a>
+        >{{event.meta.issue.title|firstline}}</a>
     {% elif event.meta.type == 'IssuesEvent' %}
         GitHub Issue <b>{{event.meta.issue.action}}</b><br>
-        <a href="{{event.url}}">{{event.meta.issue.title}}</a>
+        <a href="{{event.url}}">{{event.meta.issue.title|firstline}}</a>
     {% elif event.meta.type == 'PullRequestReviewCommentEvent' %}
         GitHub Pull Request Comment<br>
         <a href="{{event.url}}" title="{{event.meta.pull_request.title}}"
-        >{{event.meta.pull_request.title}}</a>
+        >{{event.meta.pull_request.title|firstline}}</a>
     {% elif event.meta.type == 'CreateEvent' %}
         GitHub<br>
         {% if event.meta.create.branch %}

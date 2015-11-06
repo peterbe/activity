@@ -1,6 +1,6 @@
-* Add https://github.com/pete-otaqui/fpscounter and see how it performs
+* Fix the clicking on a person to edit with semantic UI modal
 
-* https://github.com/jschr/bootstrap-modal/ for admin'ing names
+* Add https://github.com/pete-otaqui/fpscounter and see how it performs
 
 * Use react-router so we can have urls like /airmozilla,kitsune
 
@@ -11,3 +11,9 @@
 
 * At the bottom of the page, load more AJAX by looking up the last
   date of all items in the store
+
+
+DONE
+----
+
+* You can't search for "Adrian Gaudebert"
