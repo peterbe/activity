@@ -23,12 +23,17 @@ def donothing(*args):
     pass
 
 
+class DownloadError(Exception):
+    """when requests.get() doesn't get a 200"""
+    
+
 def fetch(url, params=None, expires=60 * 10):
     cache_key = hashlib.md5(url + str(params)).hexdigest()
     value = cache.get(cache_key)
     if value is None:
         r = requests.get(url, params=params or {})
-        assert r.status_code == 200, r.status_code
+        if r.status_code != 200:
+            raise DownloadError(r.status_code, url)
         try:
             value = r.json()
         except ValueError:
