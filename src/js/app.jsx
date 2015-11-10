@@ -5,7 +5,6 @@ import 'whatwg-fetch';
 import horsey from 'horsey';
 import noty from 'noty';
 import $ from 'jquery';
-import Modal from 'react-bootstrap-modal';
 
 
 const months = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
