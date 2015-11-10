@@ -25,7 +25,7 @@ def donothing(*args):
 
 class DownloadError(Exception):
     """when requests.get() doesn't get a 200"""
-    
+
 
 def fetch(url, params=None, expires=60 * 10):
     cache_key = hashlib.md5(url + str(params)).hexdigest()
@@ -69,18 +69,6 @@ def populate_github_events(project_id, log=logger.info):
         guid = 'github-event-{}'.format(event['id'])
         if Event.objects.filter(project=project, guid=guid).exists():
             continue
-
-        person, _ = Person.objects.get_or_create(
-            github=event['actor']['login']
-        )
-        if not person.github_avatar_url:
-            person.github_avatar_url = event['actor']['avatar_url']
-            person.save()
-        if not person.name:
-            name = fetch_github_name(event['actor']['login'])
-            if name:
-                person.name = name
-                person.save()
 
         meta = {
             'type': event['type'],
@@ -174,6 +162,23 @@ def populate_github_events(project_id, log=logger.info):
         else:
             pprint(event)
             raise NotImplementedError(event['type'])
+
+        person, _ = Person.objects.get_or_create(
+            github=event['actor']['login']
+        )
+        if not person.github_avatar_url:
+            person.github_avatar_url = event['actor']['avatar_url']
+            person.save()
+        if not person.name:
+            try:
+                name = fetch_github_name(event['actor']['login'])
+            except DownloadError:
+                # some users can't be downloaded
+                name = None
+            if name:
+                person.name = name
+                person.save()
+
         date = arrow.get(event['created_at']).datetime
         print "CREATED", Event.objects.create(
             guid=guid,
